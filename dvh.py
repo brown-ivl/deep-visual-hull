@@ -27,7 +27,7 @@ class dvhNet(nn.Module):
 
         # Occupancy Network
         self.fc_p = nn.Conv1d(dim, hidden_size, 1)
-        # c_dim: conv_gamma and conv_beta shapes changed corresopndingly through construtcor
+        # c_dim: conv_gamma and conv_beta shapes changed correspondingly through constructor
         self.block0 = CResnetBlockConv1d(c_dim, hidden_size)
         self.block1 = CResnetBlockConv1d(c_dim, hidden_size)
         self.block2 = CResnetBlockConv1d(c_dim, hidden_size)
@@ -36,20 +36,6 @@ class dvhNet(nn.Module):
         self.bn = CBatchNorm1d(c_dim, f_dim=hidden_size)  # or CBatchNorm1d_legacy
         self.fc_out = nn.Conv1d(hidden_size, 1, 1)
         self.actvn = F.relu
-        if DataParallelDevs is not None:
-            if len(DataParallelDevs) > 1:
-                self.down1 = nn.DataParallel(self.down1, device_ids=DataParallelDevs)
-                self.down2 = nn.DataParallel(self.down2, device_ids=DataParallelDevs)
-                self.down3 = nn.DataParallel(self.down3, device_ids=DataParallelDevs)
-                self.down4 = nn.DataParallel(self.down4, device_ids=DataParallelDevs)
-                self.down5 = nn.DataParallel(self.down5, device_ids=DataParallelDevs)
-
-                self.fc_p = nn.DataParallel(self.fc_p, device_ids=DataParallelDevs)
-                self.block0 = nn.DataParallel(self.block0, device_ids=DataParallelDevs)
-                self.block1 = nn.DataParallel(self.block1, device_ids=DataParallelDevs)
-                self.block2 = nn.DataParallel(self.block2, device_ids=DataParallelDevs)
-                self.block3 = nn.DataParallel(self.block3, device_ids=DataParallelDevs)
-                self.block4 = nn.DataParallel(self.block4, device_ids=DataParallelDevs)
 
     def forward(self, images, points):
         B, C, W, H = images.size()
