@@ -51,61 +51,6 @@ class dvhNet(nn.Module):
                 self.block3 = nn.DataParallel(self.block3, device_ids=DataParallelDevs)
                 self.block4 = nn.DataParallel(self.block4, device_ids=DataParallelDevs)
 
-    def get_segnet_encoder(in_channels=3):
-        return Sequential(
-            # SEGNET ARCHITECHTURE
-            Conv2d(in_channels, 64, 3, 1, 1),
-            BatchNorm2d(64),
-            ReLU(inplace=True),
-            Conv2d(64, 64, 3, 1, 1),
-            BatchNorm2d(64),
-            ReLU(inplace=True),
-            MaxPool2d(2, 2),
-
-            Conv2d(64, 128, 3, 1, 1),
-            BatchNorm2d(128),
-            ReLU(inplace=True),
-            Conv2d(128, 128, 3, 1, 1),
-            BatchNorm2d(128),
-            ReLU(inplace=True),
-            MaxPool2d(2, 2),
-
-            Conv2d(128, 256, 3, 1, 1),
-            BatchNorm2d(256),
-            ReLU(inplace=True),
-            Conv2d(256, 256, 3, 1, 1),
-            BatchNorm2d(256),
-            ReLU(inplace=True),
-            Conv2d(256, 256, 3, 1, 1),
-            BatchNorm2d(256),
-            ReLU(inplace=True),
-            MaxPool2d(2, 2),
-
-            Conv2d(256, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            Conv2d(512, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            Conv2d(512, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            MaxPool2d(2, 2),
-
-            Conv2d(512, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            Conv2d(512, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            Conv2d(512, 512, 3, 1, 1),
-            BatchNorm2d(512),
-            ReLU(inplace=True),
-            MaxPool2d(2, 2),
-
-            Linear(512, 256)
-        )
-
     def forward(self, images, points):
         B, C, W, H = images.size()
         if C == 3:
