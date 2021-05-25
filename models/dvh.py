@@ -137,14 +137,7 @@ class CBatchNorm1d(nn.Module):
         # Submodules
         self.conv_gamma = nn.Conv1d(c_dim, f_dim, 1)
         self.conv_beta = nn.Conv1d(c_dim, f_dim, 1)
-        if norm_method == 'batch_norm':
-            self.bn = nn.BatchNorm1d(f_dim, affine=False)
-        elif norm_method == 'instance_norm':
-            self.bn = nn.InstanceNorm1d(f_dim, affine=False)
-        elif norm_method == 'group_norm':
-            self.bn = nn.GroupNorm1d(f_dim, affine=False)
-        else:
-            raise ValueError('Invalid normalization method!')
+        self.bn = nn.BatchNorm1d(f_dim, affine=False)
         self.reset_parameters()
 
     def reset_parameters(self):
