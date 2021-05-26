@@ -17,7 +17,7 @@ def get_grid_uniform(resolution):
             "xyz": [x, y, z],
             "shortest_axis_index": 0}
 
-def get_surface_trace(decoder, latent, resolution, mc_value):
+def get_mesh(decoder, latent, resolution, mc_value):
 
     grid = get_grid_uniform(resolution)
     points = decoder(latent, torch.split(grid['grid_points'],100000,dim=0)).detach().cpu().numpy()
