@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import skimage
 import trimesh
-import tqdm
 
 def get_grid_uniform(resolution):
     x = np.linspace(-1.2,1.2, resolution)
