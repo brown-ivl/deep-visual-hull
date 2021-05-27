@@ -50,8 +50,8 @@ def read_nocs_map(path):
     nocs_map = cv2.cvtColor(nocs_map, cv2.COLOR_BGR2RGB)
     return nocs_map
 
-def nocs2voxel(nocs_list):
-    ''' Turns a tuple of NOCS maps into a combined point cloud '''
+def nocs2voxel(nocs_list, resolution = 16):
+    ''' Turns a tuple of NOCS maps into a binary voxel grid '''
     nocs_pc = []
     for nocs_map in nocs_list:
         nocs = nocs_ds.NOCSMap(nocs_map)
@@ -61,6 +61,6 @@ def nocs2voxel(nocs_list):
     point_set = nocs_ds.PointSet3D
     point_set.appendAll(nocs_pc)
 
-    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=16, n_y=16, n_z=16).get_feature_vector()
+    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=resolution, n_y=resolution, n_z=resolution).get_feature_vector()
 
     return binary_voxel_grid
