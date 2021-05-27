@@ -58,7 +58,7 @@ def nocs2voxel(nocs_list, resolution = 16):
         nocs_pc.append(nocs.Points)
     nocs_pc = np.concatenate(nocs_pc, axis=0)
 
-    point_set = nocs_ds.PointSet3D
+    point_set = nocs_ds.PointSet3D()
     point_set.appendAll(nocs_pc)
 
     binary_voxel_grid = VoxelGrid(point_set.Points, n_x=resolution, n_y=resolution, n_z=resolution).get_feature_vector()
