@@ -2,6 +2,9 @@ import numpy as np
 import torch
 import skimage
 import trimesh
+from tk3dv.nocstools import datastructures as nocs_ds
+import cv2
+from pyntcloud.structures import VoxelGrid
 
 def get_grid_uniform(resolution):
     x = np.linspace(-1.2,1.2, resolution)
@@ -40,3 +43,24 @@ def get_mesh(decoder, latent, resolution, mc_value):
     meshexport = trimesh.Trimesh(verts, faces, normals, vertex_colors=values)
 
     return {"mesh_export": meshexport}
+
+def read_nocs_map(path):
+    nocs_map = cv2.imread(path, -1)
+    nocs_map = nocs_map[:, :, :3]  # Ignore alpha if present
+    nocs_map = cv2.cvtColor(nocs_map, cv2.COLOR_BGR2RGB)
+    return nocs_map
+
+def nocs2voxel(nocs_list):
+    ''' Turns a tuple of NOCS maps into a combined point cloud '''
+    nocs_pc = []
+    for nocs_map in nocs_list:
+        nocs = nocs_ds.NOCSMap(nocs_map)
+        nocs_pc.append(nocs.Points)
+    nocs_pc = np.concatenate(nocs_pc, axis=0)
+
+    point_set = nocs_ds.PointSet3D
+    point_set.appendAll(nocs_pc)
+
+    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=16, n_y=16, n_z=16).get_feature_vector()
+
+    return binary_voxel_grid
