@@ -15,14 +15,15 @@ def get_grid_uniform(resolution):
     grid_points = torch.tensor(np.vstack([xx.ravel(), yy.ravel(), zz.ravel()]).T, dtype=torch.float)
 
     return {"grid_points": grid_points,
-            "shortest_axis_length": 2.4,
+            "shortest_axis_length": 2.4, # QUESTION
             "xyz": [x, y, z],
             "shortest_axis_index": 0}
 
 def get_mesh(decoder, latent, resolution, mc_value):
 
     grid = get_grid_uniform(resolution)
-    points = decoder(latent, torch.split(grid['grid_points'],100000,dim=0)).detach().cpu().numpy()
+    points = decoder(latent, torch.split(grid['grid_points'],100000,dim=0)).detach().cpu().numpy() # TODO
+    #  (batch_size, 3, T) -> # (batch_size, 1, T)
 
     print(np.min(points))
     print(np.max(points))
@@ -30,7 +31,7 @@ def get_mesh(decoder, latent, resolution, mc_value):
 
     points = points.astype(np.float64)
 
-    verts, faces, normals, values = skimage.measure.marching_cubes_lewiner(
+    verts, faces, normals, values = skimage.measure.marching_cubes_lewiner( # QUESTION
         volume=points.reshape(grid['xyz'][1].shape[0], grid['xyz'][0].shape[0],
                          grid['xyz'][2].shape[0]).transpose([1, 0, 2]),
         level=mc_value,
@@ -45,22 +46,26 @@ def get_mesh(decoder, latent, resolution, mc_value):
     return {"mesh_export": meshexport}
 
 def read_nocs_map(path):
-    nocs_map = cv2.imread(path, -1)
+    nocs_map = cv2.imread(path, -1) # QESTION: -1?
     nocs_map = nocs_map[:, :, :3]  # Ignore alpha if present
-    nocs_map = cv2.cvtColor(nocs_map, cv2.COLOR_BGR2RGB)
+    nocs_map = cv2.cvtColor(nocs_map, cv2.COLOR_BGR2RGB) # QUESTION: always?
     return nocs_map
 
 def nocs2voxel(nocs_list, resolution = 16):
-    ''' Turns a tuple of NOCS maps into a binary voxel grid '''
+    ''' Turns a tuple of NOCS maps into a binary voxel grid 
+    parameters:
+    nocs_list: a list of nocs_map returned by read_nocs_map
+    '''
     nocs_pc = []
     for nocs_map in nocs_list:
         nocs = nocs_ds.NOCSMap(nocs_map)
         nocs_pc.append(nocs.Points)
-    nocs_pc = np.concatenate(nocs_pc, axis=0)
+    nocs_pc = np.concatenate(nocs_pc, axis=0) # QUESTION: was it not already like [[x,y,z],[]] before concatenate?
 
     point_set = nocs_ds.PointSet3D()
     point_set.appendAll(nocs_pc)
 
-    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=resolution, n_y=resolution, n_z=resolution).get_feature_vector()
+    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=resolution, n_y=resolution, n_z=resolution).get_feature_vector() # [n_x, n_y, n_z] ndarray
+    # QUESTION: 0 and 1?
 
     return binary_voxel_grid
