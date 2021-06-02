@@ -5,6 +5,7 @@ import trimesh
 from tk3dv.nocstools import datastructures as nocs_ds
 import cv2
 from pyntcloud.structures import VoxelGrid
+import matplotlib.pyplot as plt
 
 def get_grid_uniform(resolution):
     x = np.linspace(-1.2,1.2, resolution)
@@ -61,6 +62,30 @@ def nocs2voxel(nocs_list, resolution = 16):
     point_set = nocs_ds.PointSet3D()
     point_set.appendAll(nocs_pc)
 
-    binary_voxel_grid = VoxelGrid(point_set.Points, n_x=resolution, n_y=resolution, n_z=resolution).get_feature_vector()
+    points = np.array(point_set.Points)
 
-    return binary_voxel_grid
+    print(points.shape)
+
+    binary_voxel_grid = VoxelGrid(points=points, n_x=32, n_y=32, n_z=32)
+    binary_voxel_grid.compute()
+    return binary_voxel_grid.get_feature_vector()
+
+def draw_voxel_grid(binary_voxel_grid):
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.voxels(binary_voxel_grid, edgecolor='k')
+    plt.show()
+
+# # TEST VOXELIZATION #
+# if __name__ == "__main__":
+#     nocs_maps = []
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     nocs_maps.append(read_nocs_map("INSERT PATH HERE"))
+#     draw_voxel_grid(nocs2voxel(nocs_maps))
