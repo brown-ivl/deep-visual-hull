@@ -7,12 +7,14 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor, Lambda, Compose
 from torchinfo import summary
 import numpy as np
-
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+from data import CustomImageDataset
+import config
 
 FileDirPath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(FileDirPath, 'models'))
 from dvh import dvhNet
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
@@ -25,7 +27,7 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
         print(y.shape) # (batch_size, 2,2,2)
         print(pred.shape) # (batch_size, 1, T=8) 
         reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1) 
-        reshaped_pred = reshaped_pred.reshape((batch_size, 2,2,2))
+        reshaped_pred = reshaped_pred.reshape((config.batch_size, 2,2,2))
         loss = loss_fn(pred, y) # compute prediction error
 
         # Backpropagation of predication error
@@ -39,7 +41,8 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 
 
 if __name__ == "__main__":
-    training_data = datasets.FakeData(transform=ToTensor())
+    training_data = CustomImageDataset(config.instance_dir, config.resolution)
+    # training_data = datasets.FakeData(transform=ToTensor())
     # test_data = datasets.FashionMNIST(root="data", train=False, download=True)
     # X: torch.Size([64, 1, 28, 28]); y: torch.Size([64])
     train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=1)
