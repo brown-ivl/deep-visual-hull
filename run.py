@@ -18,12 +18,14 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
     size = len(dataloader.dataset) # number of samples
     for batch_idx, (images, y) in enumerate(dataloader):
-        images, y = images.to(device), y.to(device) # TODO
+        images, y = images.to(device), y.to(device) # TODO: images and occupancy read from files 
         print(images.shape)
-        points = torch.zeros(1, 3, 4) # TODO
+        points = torch.zeros(1, 3, 4) # TODO: read from files (batch_size, 3, T=8)
         pred = model(images, points) # predicts on the batch of training data
-        print(y.shape)
-        print(pred.shape)
+        print(y.shape) # (batch_size, 2,2,2)
+        print(pred.shape) # (batch_size, 1, T=8) 
+        reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1) 
+        reshaped_pred = reshaped_pred.reshape((batch_size, 2,2,2))
         loss = loss_fn(pred, y) # compute prediction error
 
         # Backpropagation of predication error
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     model = dvhNet()
     # summary(model, [(1,3,224,224), (1, 3, 4)])
 
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss() # chamfer distance?
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
     epochs = 5

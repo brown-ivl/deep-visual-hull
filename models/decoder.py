@@ -20,7 +20,7 @@ class DeepVisualHullDecoder(nn.Module):
         '''
         args:
         c: output of encoder (batch_size, 256)
-        p: a batch of T 3D coordinates (batch_size, 3, T)
+        p: a batch of T 3D coordinates (batch_size, 3, T=resolution**3)
         '''
         f_in = self.fc_p(p) # (batch_size, 3, T) -> (batch_size, f_dim, T)
         x = self.block1(f_in, c)
