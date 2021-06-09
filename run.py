@@ -8,6 +8,7 @@ from torchvision.transforms import ToTensor, Lambda, Compose
 from torchinfo import summary
 import numpy as np
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 FileDirPath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(FileDirPath, 'models'))
@@ -18,8 +19,11 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     size = len(dataloader.dataset) # number of samples
     for batch_idx, (images, y) in enumerate(dataloader):
         images, y = images.to(device), y.to(device) # TODO
-        points = torch.tensor(np.zeros((1, 3, 4))) # TODO
+        print(images.shape)
+        points = torch.zeros(1, 3, 4) # TODO
         pred = model(images, points) # predicts on the batch of training data
+        print(y.shape)
+        print(pred.shape)
         loss = loss_fn(pred, y) # compute prediction error
 
         # Backpropagation of predication error
@@ -33,7 +37,7 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 
 
 if __name__ == "__main__":
-    training_data = datasets.FashionMNIST(root="data", train=True, download=True, transform=ToTensor())
+    training_data = datasets.FakeData(transform=ToTensor())
     # test_data = datasets.FashionMNIST(root="data", train=False, download=True)
     # X: torch.Size([64, 1, 28, 28]); y: torch.Size([64])
     train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=1)
