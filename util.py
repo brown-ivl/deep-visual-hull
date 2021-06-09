@@ -113,12 +113,13 @@ if __name__ == "__main__":
     #         files = [os.path.join(dirpath, objectDir, f) for f in files if 'NOX' in f]
     #         nocs_paths.extend(files)
     #     break # only one level down
-    nocs_paths = ["shapenetplain_v1/train/02691156/a36d00e2f7414043f2b0736dd4d8afe0/frame_00000000_NOXRayTL_00.png"]
+    nocs_paths = ["/Users/aparna/Downloads/nocs_to_voxel_visualization/frame_00000000_NOXRayTL_00.png"]
     nocs_images = read_nocs_map(nocs_paths)
     resolution = 2
     binary_voxel_grid = nocs2voxel(nocs_images, resolution=resolution) # (2,2,2) -> (batch_size, 2,2,2)
     voxel_centers = cube_voxel_centers(resolution) # (3,T=8) -> (batch_size, 3, T=8)
     # draw_voxel_grid(binary_voxel_grid)
+    binary_voxel_grid = np.array(binary_voxel_grid, dtype=bool)
     print("binary_voxel_grid", binary_voxel_grid)
     with open("test.binvox", "wb") as f:
         voxels = binvox.Voxels(binary_voxel_grid, [resolution, resolution, resolution], [0,0,0], 1, "xyz")
