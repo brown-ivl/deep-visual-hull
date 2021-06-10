@@ -39,13 +39,13 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 
 if __name__ == "__main__":
     training_data = CustomImageDataset(config.instance_dir, config.resolution)
-    train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size)
+    train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
     # test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size)
 
     model = dvhNet()
     # summary(model, [(1,3,224,224), (1, 3, 4)])
-    loss_fn = nn.BCELoss() # chamfer distance?
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    loss_fn = nn.BCELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
     epochs = 5
     for epoch_idx in range(epochs):
