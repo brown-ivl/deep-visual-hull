@@ -10,11 +10,12 @@ import numpy as np
 from data import CustomImageDataset
 import config
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 FileDirPath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(FileDirPath, 'models'))
 from dvh import dvhNet
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
@@ -25,11 +26,14 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
         print("points.shape", points.shape) # [1, 3, T=16^3=4096])
         print("y.shape", y.shape) # [1, 16, 16, 16]
         pred = model(images.float(), points.float()) # predicts on the batch of training data
-        print(y.shape) # (batch_size, 2,2,2)
-        print(pred.shape) # (batch_size, 1, T=8) 
+        # print(y.shape) # (batch_size, 2,2,2)
+        # print(pred.shape) # (batch_size, 1, T=8) 
         reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1) 
         reshaped_pred = reshaped_pred.reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
-        loss = loss_fn(pred, y) # compute prediction error
+        print("y.shape", y.shape) # (batch_size, 2,2,2) # 1, 16, 16, 16
+        print("pred.shape", reshaped_pred.shape) # (batch_size, 1, T=8) # 1, 16, 16, 16
+        # print(y.flatten().shape)
+        loss = loss_fn(reshaped_pred.float(), y.float()) # compute prediction error
 
         # Backpropagation of predication error
         optimizer.zero_grad()
@@ -52,7 +56,8 @@ if __name__ == "__main__":
     model = dvhNet()
     # summary(model, [(1,3,224,224), (1, 3, 4)])
 
-    loss_fn = nn.CrossEntropyLoss() # chamfer distance?
+    loss_fn = nn.BCELoss()
+    # loss_fn = nn.CrossEntropyLoss() # chamfer distance?
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
     epochs = 5
