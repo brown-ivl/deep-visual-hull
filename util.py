@@ -53,7 +53,6 @@ def read_nocs_map(nocs_paths):
         nocs_images.append(cv2.cvtColor(nocs_image, cv2.COLOR_BGR2RGB))
     return nocs_images
 
-
 def nocs2voxel(nocs_images, resolution):
     ''' Turns a tuple of NOCS maps into a binary voxel grid 
     parameters:

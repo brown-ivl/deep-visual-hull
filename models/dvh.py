@@ -1,4 +1,3 @@
-# Borrowed from https://github.com/meetshah1995/pytorch-semseg
 import torch.nn as nn
 from torch.nn import Conv2d, BatchNorm2d, ReLU, MaxPool2d, Linear, Sequential
 import torchvision.models as models
