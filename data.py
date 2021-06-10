@@ -1,6 +1,5 @@
 import os
 import torch
-from torchvision.io import read_image
 from torchvision.transforms import ToTensor
 from util import calculate_voxel_centers
 import binvox_rw as binvox
@@ -20,15 +19,13 @@ class CustomImageDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.image_paths)
 
-    # takes an image path and returns a tensor of the shape
-    # 3 (num channels) x 224 x 224
     def get_image(self, path):
+        '''takes an image path and returns a tensor of the shape 3 (num channels) x 224 x 224'''
         image = cv2.imread(path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, (224, 224))
         image = torch.tensor(image)
         image = image.permute(2, 0, 1)
-
         return image
 
     def __getitem__(self, idx):
