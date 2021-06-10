@@ -62,7 +62,7 @@ def nocs2voxel(nocs_images, resolution):
     nocs_pc = []
     for nocs_image in nocs_images:
         nocs_map = nocs_ds.NOCSMap(nocs_image)
-        nocs_pc.append(nocs_map.Points) # array of 0-1 [x,y,z] NOCS coordinates where object is observed in rgb images
+        nocs_pc.append(nocs_map.Points) # arr of 0-1 [x,y,z] NOCS coord where object is observed in rgb images (from nocs_map's non-255,255,255 RGB tuples)
     nocs_pc = np.concatenate(nocs_pc, axis=0) # array of all ocucpied xyz NOCS coordinates from all nocs_images
     # point_set = nocs_ds.PointSet3D()
     # point_set.appendAll(nocs_pc)
@@ -106,27 +106,27 @@ def draw_voxel_grid(binary_voxel_grid):
 
 # TEST VOXELIZATION #
 if __name__ == "__main__":
-    ## For more than 1 object instance:
+    ### For more than 1 object instance:
     # nocs_paths = []
     # dataDir = "shapenetplain_v1/train/02691156/"
     # for (dirpath, dirnames, filenames) in os.walk(dataDir):
     #     for objectDir in dirnames[:1]: # first object directory (example: "a36d00e2f7414043f2b0736dd4d8afe0")
     #         files = os.listdir(os.path.join(dirpath, objectDir))
-    #         files = [os.path.join(dirpath, objectDir, f) for f in files if 'NOX' in f]
+    #         files = [os.path.join(dirpath, objectDir, f) for f in files if 'NOX' in f] # nocsmaps
     #         nocs_paths.extend(files)
     #     break # only one level down
 
-    ## 1 instance
+    ### For 1 instance
     files = os.listdir(config.instance_dir)
     nocs_paths = [os.path.join(config.instance_dir, f) for f in files if 'NOX' in f]
     frames = list(set([f[6:14] for f in files]))
     nocs_images = read_nocs_map(nocs_paths)
     binary_voxel_grid = nocs2voxel(nocs_images, resolution=config.resolution) # (2,2,2) -> (batch_size, 2,2,2)
-    voxel_centers = calculate_voxel_centers(config.resolution) # (3,T=8) -> (batch_size, 3, T=8)
+    # voxel_centers = calculate_voxel_centers(config.resolution) # (3,T=8) -> (batch_size, 3, T=8)
     draw_voxel_grid(binary_voxel_grid)
-    # Writing of binvox files
-        # for frame in frames:
-        #     with open(f"{config.instance_dir}/frame_{frame}_voxel_grid.binvox", "wb") as f:
-        #         voxels = binvox.Voxels(np.array(binary_voxel_grid, dtype=bool), [config.resolution, config.resolution, config.resolution], [0,0,0], 1, "xyz")
-        #         voxels.write(f)
+    ## Writing of binvox files:
+    # for frame in frames:
+    #     with open(f"{config.instance_dir}/frame_{frame}_voxel_grid.binvox", "wb") as f:
+    #         voxels = binvox.Voxels(np.array(binary_voxel_grid, dtype=bool), [config.resolution, config.resolution, config.resolution], [0,0,0], 1, "xyz")
+    #         voxels.write(f)
    

@@ -19,10 +19,11 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
     size = len(dataloader.dataset) # number of samples
-    for batch_idx, (images, y) in enumerate(dataloader):
-        images, y = images.to(device), y.to(device) # TODO: images and occupancy read from files 
-        print(images.shape)
-        points = torch.zeros(1, 3, 4) # TODO: read from files (batch_size, 3, T=8)
+    for batch_idx, (images, points, y) in enumerate(dataloader):
+        images, points, y = images.to(device), points.to(device), y.to(device) 
+        print("images.shape", images.shape)
+        print("points.shape", points.shape) # (batch_size, 3, T=8)
+        print("y.shape", y.shape)
         pred = model(images, points) # predicts on the batch of training data
         print(y.shape) # (batch_size, 2,2,2)
         print(pred.shape) # (batch_size, 1, T=8) 
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     # training_data = datasets.FakeData(transform=ToTensor())
     # test_data = datasets.FashionMNIST(root="data", train=False, download=True)
     # X: torch.Size([64, 1, 28, 28]); y: torch.Size([64])
-    train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=1)
+    train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size)
     # test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=64)
 
     model = dvhNet()
