@@ -21,20 +21,11 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
     size = len(dataloader.dataset) # number of samples
     for batch_idx, (images, points, y) in enumerate(dataloader):
-        # images, points, y = images.to(device), points.to(device), y.to(device)
-        print("images.shape", images.shape)
-        print("points.shape", points.shape) # (batch_size, 3, T=8)
-        print("y.shape", y.shape)
-        #model = model.float()
         pred = model(images.float(), points.float()) # predicts on the batch of training data
-        #print(y.shape) # (batch_size, 2,2,2)
-        #print(pred.shape) # (batch_size, 1, T=8)
-        #reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1)
-        #reshaped_pred = reshaped_pred.reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
-        #print(y.shape) # (batch_size, 2,2,2)
-        print(pred.shape) # (batch_size, 1, T=8)
-        print(y.flatten().shape)
-        loss = loss_fn(pred, y) # compute prediction error
+
+        reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1)
+        reshaped_pred = reshaped_pred.reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
+        loss = loss_fn(reshaped_pred.float(), y.float()) # compute prediction error
 
         # Backpropagation of predication error
         optimizer.zero_grad()
@@ -57,7 +48,7 @@ if __name__ == "__main__":
     model = dvhNet()
     # summary(model, [(1,3,224,224), (1, 3, 4)])
 
-    loss_fn = nn.CrossEntropyLoss() # chamfer distance?
+    loss_fn = nn.BCELoss() # chamfer distance?
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
     epochs = 5

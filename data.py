@@ -33,8 +33,6 @@ class CustomImageDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         image = self.get_image(self.image_paths[idx])
-
-        print(image.shape)
         with open(self.voxel_grid_paths[idx], "rb") as f:
             voxels = binvox.read_as_3d_array(f)
             voxel_grid = voxels.data.astype(float)
