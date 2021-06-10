@@ -21,14 +21,14 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     size = len(dataloader.dataset) # number of samples
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device) 
-        print("images.shape", images.shape)
-        print("points.shape", points.shape) # (batch_size, 3, T=8)
-        print("y.shape", y.shape)
-        pred = model(images, points) # predicts on the batch of training data
+        print("images.shape", images.shape) # [1, 4, 480, 640]
+        print("points.shape", points.shape) # [1, 3, T=16^3=4096])
+        print("y.shape", y.shape) # [1, 16, 16, 16]
+        pred = model(images.float(), points.float()) # predicts on the batch of training data
         print(y.shape) # (batch_size, 2,2,2)
         print(pred.shape) # (batch_size, 1, T=8) 
         reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1) 
-        reshaped_pred = reshaped_pred.reshape((config.batch_size, 2,2,2))
+        reshaped_pred = reshaped_pred.reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
         loss = loss_fn(pred, y) # compute prediction error
 
         # Backpropagation of predication error

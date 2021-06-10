@@ -20,7 +20,7 @@ class CustomImageDataset(torch.utils.data.Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        image = read_image(self.image_paths[idx])
+        image = read_image(self.image_paths[idx])[:3, :, :] # ignore alpha if present
         with open(self.voxel_grid_paths[idx], "rb") as f:
             voxels = binvox.read_as_3d_array(f)
             voxel_grid = voxels.data.astype(float)
