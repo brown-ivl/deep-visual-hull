@@ -10,25 +10,30 @@ import numpy as np
 from data import CustomImageDataset
 import config
 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 FileDirPath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(FileDirPath, 'models'))
 from dvh import dvhNet
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
     size = len(dataloader.dataset) # number of samples
     for batch_idx, (images, points, y) in enumerate(dataloader):
-        images, points, y = images.to(device), points.to(device), y.to(device) 
+        # images, points, y = images.to(device), points.to(device), y.to(device)
         print("images.shape", images.shape)
         print("points.shape", points.shape) # (batch_size, 3, T=8)
         print("y.shape", y.shape)
-        pred = model(images, points) # predicts on the batch of training data
-        print(y.shape) # (batch_size, 2,2,2)
-        print(pred.shape) # (batch_size, 1, T=8) 
-        reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1) 
-        reshaped_pred = reshaped_pred.reshape((config.batch_size, 2,2,2))
+        #model = model.float()
+        pred = model(images.float(), points.float()) # predicts on the batch of training data
+        #print(y.shape) # (batch_size, 2,2,2)
+        #print(pred.shape) # (batch_size, 1, T=8)
+        #reshaped_pred = pred.transpose(1, 2) # (batch_size, T=8, 1)
+        #reshaped_pred = reshaped_pred.reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
+        #print(y.shape) # (batch_size, 2,2,2)
+        print(pred.shape) # (batch_size, 1, T=8)
+        print(y.flatten().shape)
         loss = loss_fn(pred, y) # compute prediction error
 
         # Backpropagation of predication error
