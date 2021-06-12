@@ -9,6 +9,12 @@ from torchinfo import summary
 import numpy as np
 from data import CustomImageDataset
 import config
+import torchvision
+print(torch.__version__)
+print(torchvision.__version__)
+from torch.utils.tensorboard import SummaryWriter
+
+writer = SummaryWriter()
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
@@ -36,6 +42,8 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
             loss, current = loss.item(), batch_idx * len(images) # (batch size)
             print(f"loss: {loss:>7f}") # [{current:>5d}/{size:>5d}]
 
+    return loss
+
 
 if __name__ == "__main__":
     training_data = CustomImageDataset(config.instance_dir, config.resolution)
@@ -47,9 +55,12 @@ if __name__ == "__main__":
     loss_fn = nn.BCELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
-    epochs = 5
+    epochs = 2000
     for epoch_idx in range(epochs):
         print(f"Epoch {epoch_idx+1}\n-------------------------------")
-        train_step(train_dataloader, model, loss_fn, optimizer)
+        loss = train_step(train_dataloader, model, loss_fn, optimizer)
+        writer.add_scalar("Loss/train", loss, epoch_idx)
     print("Done!")
+    writer.flush()
+    writer.close()
 
