@@ -56,7 +56,7 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
         print("\t----", batch_idx)
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         pred = model(images.float(), points.float()) # (batch_size, 1, T=16**3=4096)
-        print("\tpred=", pred)
+        # print("\tpred=", pred)
         reshaped_pred = pred.transpose(1, 2).reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
         testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
         print(f"\tTest loss: {np.mean(np.asarray(testLosses)):>7f}")
@@ -71,7 +71,7 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
     print("objpointcloud.shape=", objpointcloud.shape)
     if len(objpointcloud) != 0:
         voxel = util.pointcloud2voxel(objpointcloud, config.resolution)
-        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.save_dir}voxel_grid.jpg" 
+        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.jpg" 
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
 
 
@@ -81,13 +81,19 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default="train", help="One of 'train' or 'test'")
-    parser.add_argument('--save_dir', type=str, default=config.save_dir, help="The directory to store the .pth model files and val/test visualization images")
+    parser.add_argument('--save_dir', type=str, default=config.save_dir, 
+        help="The directory to store the .pth model files and val/test visualization images. If load_ckpt_dir also passed in, then overriden.")
     parser.add_argument('--load_ckpt_dir', type=str, help="The directory to load .pth model files from, required for test mode")
     flags, unparsed = parser.parse_known_args()
     
     if flags.mode=="train":
         print("TRAIN mode")
-        flags.save_dir += f'{timestamp}/' if flags.save_dir.endswith("/") else f'{timestamp}/'
+        if flags.load_ckpt_dir:
+            flags.load_ckpt_dir+= '' if flags.load_ckpt_dir.endswith("/") else '/'
+            flags.save_dir = flags.load_ckpt_dir
+            # TODO: load checkpoint, extract the epoch number, continue training and saving from there (epochidx in range(oldepoch, oldepoch+epohces))
+        else:
+            flags.save_dir += f'{timestamp}/' if flags.save_dir.endswith("/") else f'{timestamp}/'
         if os.path.exists(flags.save_dir) == False:
             os.makedirs(flags.save_dir)
         print("save_dir=",flags.save_dir)
@@ -100,7 +106,7 @@ if __name__ == "__main__":
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
-        epochs = 250
+        epochs = 5
         for epoch_idx in range(epochs):
             print(f"-------------------------------\nEpoch {epoch_idx+1}")
             loss = train_step(train_dataloader, model, loss_fn, optimizer)
