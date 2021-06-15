@@ -59,7 +59,7 @@ def test(dataloader, model, loss_fn, threshold=0.3, device='cpu'):
         ## convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred>threshold, as_tuple=True)
         print("indices\n", indices)
-        pointcloud = points[indices[0], :, indices[2]] # array of [x,y,z] where pred > threshold # TODO
+        pointcloud = np.array(points[indices[0], :, indices[2]]) # array of [x,y,z] where pred > threshold
         print("pointcloud\n", pointcloud)
         # TODO: check pointcloud has element (none of the dimension is 0)
         voxel = util.pointcloud2voxel(pointcloud, config.resolution)

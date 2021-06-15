@@ -54,7 +54,7 @@ def read_nocs_map(nocs_paths):
     return nocs_images
 
 def pointcloud2voxel(points, resolution, mode='binary'):
-    ''' Turns an array of xyz coordinates into a voxel grid representation of given resolution'''
+    ''' Turns a numpy array of xyz coordinates into a voxel grid representation of given resolution'''
     binary_voxel_grid = VoxelGrid(points=points, n_x=resolution, n_y=resolution, n_z=resolution)
     binary_voxel_grid.compute()
     bvg_vector = binary_voxel_grid.get_feature_vector(mode) # [n_x, n_y, n_z] ndarray
