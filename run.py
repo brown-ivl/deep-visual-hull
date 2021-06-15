@@ -48,8 +48,9 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 
     return loss
 
-def test(dataloader, model, loss_fn, threshold=0.3, device='cpu'):
+def test(dataloader, model, loss_fn, threshold=0.4, device='cpu'):
     '''model: with loaded checkpoint or trained parameters'''
+    pointcloud = []
     for batch_idx, (images, points, y) in enumerate(dataloader):
         print("----", batch_idx)
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
@@ -59,11 +60,12 @@ def test(dataloader, model, loss_fn, threshold=0.3, device='cpu'):
         ## convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred>threshold, as_tuple=True)
         print("indices\n", indices)
-        pointcloud = np.array(points[indices[0], :, indices[2]]) # array of [x,y,z] where pred > threshold
-        print("pointcloud\n", pointcloud)
-        # TODO: check pointcloud has element (none of the dimension is 0)
-        voxel = util.pointcloud2voxel(pointcloud, config.resolution)
-        util.draw_voxel_grid(voxel)
+        # append points from each batch togethor
+        pointcloud = pointcloud + points[indices[0], :, indices[2]].tolist() # array of [x,y,z] where pred > threshold
+    print("pointcloud\n", pointcloud)
+    # TODO: check pointcloud has element (none of the dimension is 0)
+    voxel = util.pointcloud2voxel(np.array(pointcloud), config.resolution)
+    util.draw_voxel_grid(voxel)
 
 
 if __name__ == "__main__":
@@ -89,7 +91,7 @@ if __name__ == "__main__":
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
-        epochs = 2
+        epochs = 250
         for epoch_idx in range(epochs):
             print(f"-------------------------------\nEpoch {epoch_idx+1}")
             loss = train_step(train_dataloader, model, loss_fn, optimizer)
