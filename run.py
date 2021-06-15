@@ -51,7 +51,7 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=None):
     '''model: with loaded checkpoint or trained parameters'''
     testLosses = []
-    objpointcloud = [] # append points from each batch together for one visualization per object
+    objpointcloud = [] # append points from each image-occupancy pair together for one visualization per object
     for batch_idx, (images, points, y) in enumerate(dataloader):
         print("\t----", batch_idx)
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
@@ -67,9 +67,10 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
         print("\tpointcloud.shape=", np.array(pointcloud).shape)
         objpointcloud += pointcloud # array of [x,y,z] where pred > threshold
 
-    print("\objpointcloud.shape=", objpointcloud.shape)
+    objpointcloud = np.array(objpointcloud)
+    print("objpointcloud.shape=", objpointcloud.shape)
     if len(objpointcloud) != 0:
-        voxel = util.pointcloud2voxel(np.array(objpointcloud), config.resolution)
+        voxel = util.pointcloud2voxel(objpointcloud, config.resolution)
         voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.save_dir}voxel_grid.jpg" 
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
 
@@ -112,7 +113,7 @@ if __name__ == "__main__":
 
         writer.flush()
         writer.close()
-        
+
         print("################# Done #################")
 
 
