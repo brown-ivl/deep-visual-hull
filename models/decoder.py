@@ -88,6 +88,6 @@ class CondBatchNorm(nn.Module):
         normalized_f_in = self.bn(f_in) # (batch_size, f_dim, T)
         return normalized_f_in * gamma_c + beta_c # (batch_size, f_dim, T)
 
-
-# decoder = DeepVisualHullDecoder()
-# summary(decoder, [(1,3,4), (1,256)])
+if __name__ == "__main__":
+    decoder = DeepVisualHullDecoder()
+    summary(decoder, [(1,3,4), (1,256)])

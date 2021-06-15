@@ -68,5 +68,6 @@ class DeepVisualHullEncoder(nn.Module):
         out = self.architecture(images)
         return out
 
-encoder = DeepVisualHullEncoder()
-summary(encoder, (1,3,224,224))
+if __name__ == "__main__":
+    encoder = DeepVisualHullEncoder()
+    summary(encoder, (1,3,224,224))

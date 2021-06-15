@@ -53,6 +53,13 @@ def read_nocs_map(nocs_paths):
         nocs_images.append(cv2.cvtColor(nocs_image, cv2.COLOR_BGR2RGB))
     return nocs_images
 
+def pointcloud2voxel(points, resolution, mode='binary'):
+    ''' Turns an array of xyz coordinates into a voxel grid representation of given resolution'''
+    binary_voxel_grid = VoxelGrid(points=points, n_x=resolution, n_y=resolution, n_z=resolution)
+    binary_voxel_grid.compute()
+    bvg_vector = binary_voxel_grid.get_feature_vector(mode) # [n_x, n_y, n_z] ndarray
+    return bvg_vector
+
 def nocs2voxel(nocs_images, resolution):
     ''' Turns a tuple of NOCS maps into a binary voxel grid 
     parameters:
@@ -67,12 +74,7 @@ def nocs2voxel(nocs_images, resolution):
     # point_set.appendAll(nocs_pc)
     # points = np.array(point_set.Points)
     points = nocs_pc
-
-    # turns point cloud into voxel grid representation
-    binary_voxel_grid = VoxelGrid(points=points, n_x=resolution, n_y=resolution, n_z=resolution)
-    binary_voxel_grid.compute()
-    bvg_vector = binary_voxel_grid.get_feature_vector(mode="binary") # [n_x, n_y, n_z] ndarray
-    return bvg_vector
+    return pointcloud2voxel(points, resolution)
 
 def calculate_voxel_centers(resolution, min=0, max=1):
     '''returns an array of (x,y,z) coordinates in min-max representing centers of voxel cells
@@ -99,6 +101,7 @@ def calculate_voxel_centers(resolution, min=0, max=1):
     return voxel_centers
 
 def draw_voxel_grid(binary_voxel_grid):
+    '''visualize binary_voxel_grid, output from pointcloud2voxel()'''
     ax = plt.figure().add_subplot(projection='3d')
     ax.voxels(binary_voxel_grid, edgecolor='k')
     plt.show()
