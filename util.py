@@ -100,11 +100,14 @@ def calculate_voxel_centers(resolution, min=0, max=1):
     voxel_centers = voxel_centers.transpose(0, 1) # (T, 3) -> (3, T)
     return voxel_centers
 
-def draw_voxel_grid(binary_voxel_grid):
+def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_grid.jpg'):
     '''visualize binary_voxel_grid, output from pointcloud2voxel()'''
     ax = plt.figure().add_subplot(projection='3d')
     ax.voxels(binary_voxel_grid, edgecolor='k')
-    plt.show()
+    if to_disk:
+        plt.savefig(fp)
+    if to_show:
+        plt.show()
 
 # TEST VOXELIZATION #
 if __name__ == "__main__":
