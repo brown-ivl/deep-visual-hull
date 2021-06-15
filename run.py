@@ -51,6 +51,7 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
 def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=None):
     '''model: with loaded checkpoint or trained parameters'''
     testLosses = []
+    objpointcloud = [] # append points from each batch together for one visualization per object
     for batch_idx, (images, points, y) in enumerate(dataloader):
         print("\t----", batch_idx)
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
@@ -62,14 +63,14 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
 
         ## convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred>threshold, as_tuple=True) # tuple of 3 tensors, each the indices of 1 dimensino
-        # print("\tindices\n", indices)
-        pointcloud = np.array(points[indices[0], :, indices[2]]) # array of [x,y,z] where pred > threshold
-        print("\tpointcloud.shape=", pointcloud.shape)
-        if len(pointcloud) == 0:
-            continue # no point passes the threshold
-        voxel = util.pointcloud2voxel(pointcloud, config.resolution)
-        
-        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}_b{batch_idx}.jpg" if after_epoch else f"{flags.save_dir}voxel_grid_test_b{batch_idx}.jpg" 
+        pointcloud = points[indices[0], :, indices[2]].tolist()
+        print("\tpointcloud.shape=", np.array(pointcloud).shape)
+        objpointcloud += pointcloud # array of [x,y,z] where pred > threshold
+
+    print("\objpointcloud.shape=", objpointcloud.shape)
+    if len(objpointcloud) != 0:
+        voxel = util.pointcloud2voxel(np.array(objpointcloud), config.resolution)
+        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.save_dir}voxel_grid.jpg" 
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
 
 
@@ -98,7 +99,7 @@ if __name__ == "__main__":
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
-        epochs = 3
+        epochs = 250
         for epoch_idx in range(epochs):
             print(f"-------------------------------\nEpoch {epoch_idx+1}")
             loss = train_step(train_dataloader, model, loss_fn, optimizer)
@@ -111,8 +112,9 @@ if __name__ == "__main__":
 
         writer.flush()
         writer.close()
-
+        
         print("################# Done #################")
+
 
     elif flags.mode=="test":
         print("TEST mode")
@@ -134,4 +136,6 @@ if __name__ == "__main__":
         test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         loss_fn = nn.BCELoss()
         test(test_dataloader, model, loss_fn)
+
+        print("################# Done #################")
 
