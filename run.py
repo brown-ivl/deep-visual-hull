@@ -102,6 +102,10 @@ if __name__ == "__main__":
         train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
 
         model = dvhNet()
+        if flags.load_ckpt_dir:
+            ckpt_fp = util.get_checkpoint_file(flags.load_ckpt_dir)
+            model.load_state_dict(torch.load(ckpt_fp))
+
         # summary(model, [(1,3,224,224), (1, 3, 4)])
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
@@ -128,15 +132,7 @@ if __name__ == "__main__":
         if not flags.load_ckpt_dir:
             sys.exit("ERROR: Checkpoint directory needed for test mode")
 
-        flags.load_ckpt_dir += '/' if flags.load_ckpt_dir.endswith("/") else ''
-        ckpt_fps = os.listdir(flags.load_ckpt_dir)
-        ckpt_fps = [f for f in ckpt_fps if f.endswith(".pth")]
-        ckpt_fps.sort()
-        if len(ckpt_fps)==0:
-            sys.exit("ERROR: cannot find checkpint files in load_ckpt_dir")
-        ckpt_fp = os.path.join(flags.load_ckpt_dir,ckpt_fps[-1])
-        print("Checkpoint filepath:", ckpt_fp)
-
+        ckpt_fp = util.get_checkpoint_file(flags.load_ckpt_dir)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
         test_data = CustomImageDataset(config.instance_dir, config.resolution)
