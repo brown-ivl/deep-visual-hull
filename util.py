@@ -129,7 +129,8 @@ def save_to_binvox(voxel_grid, resolution, save_path):
         scale=1.0,
         axis_order='xyz'
     )
-    binvox_ds.write(save_path)
+    with open(save_path, 'wb') as f:
+        binvox_ds.write(f)
 
 # TEST VOXELIZATION #
 if __name__ == "__main__":

@@ -133,6 +133,8 @@ if __name__ == "__main__":
         print("TEST mode")
         if not flags.load_ckpt_dir:
             sys.exit("ERROR: Checkpoint directory needed for test mode")
+        else:
+            flags.load_ckpt_dir+= '' if flags.load_ckpt_dir.endswith("/") else '/'
 
         ckpt_fp = util.get_checkpoint_file(flags.load_ckpt_dir)
         model = dvhNet()
