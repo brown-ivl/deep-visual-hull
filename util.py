@@ -111,7 +111,7 @@ def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_g
         plt.show()
 
 def get_checkpoint_file(dir: str):
-    dir += '/' if dir.endswith("/") else ''
+    dir += '' if dir.endswith("/") else '/'
     ckpt_fps = os.listdir(dir)
     ckpt_fps = [f for f in ckpt_fps if f.endswith(".pth")]
     ckpt_fps.sort()
@@ -119,6 +119,7 @@ def get_checkpoint_file(dir: str):
         sys.exit("ERROR: cannot find checkpint files in load_ckpt_dir")
     ckpt_fp = os.path.join(dir, ckpt_fps[-1])
     print("Checkpoint filepath:", ckpt_fp)
+    return ckpt_fp
 
 def save_to_binvox(voxel_grid, resolution, save_path):
     binvox_ds = Voxels(
