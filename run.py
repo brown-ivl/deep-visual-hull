@@ -71,8 +71,10 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
     print("objpointcloud.shape=", objpointcloud.shape)
     if len(objpointcloud) != 0:
         voxel = util.pointcloud2voxel(objpointcloud, config.resolution)
-        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.jpg" 
+        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.jpg"
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
+        binvox_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.binvox" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.binvox"
+        util.save_to_binvox(voxel, config.resolution, binvox_fp)
 
 
 if __name__ == "__main__":

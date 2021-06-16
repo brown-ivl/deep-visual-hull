@@ -9,6 +9,7 @@ from pyntcloud.structures import VoxelGrid
 import os, sys
 import binvox_rw as binvox
 import config
+from binvox_rw import Voxels
 
 def get_grid_uniform(resolution):
     x = np.linspace(0, 1, resolution)
@@ -119,6 +120,15 @@ def get_checkpoint_file(dir: str):
     ckpt_fp = os.path.join(dir, ckpt_fps[-1])
     print("Checkpoint filepath:", ckpt_fp)
 
+def save_to_binvox(voxel_grid, resolution, save_path):
+    binvox_ds = Voxels(
+        data=voxel_grid,
+        dims=[resolution, resolution, resolution],
+        translate=[0.0, 0.0, 0.0],
+        scale=1.0,
+        axis_order='xyz'
+    )
+    binvox_ds.write(save_path)
 
 # TEST VOXELIZATION #
 if __name__ == "__main__":
