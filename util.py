@@ -45,40 +45,9 @@ def get_mesh(decoder, latent_c, resolution, mc_value):
     meshexport = trimesh.Trimesh(verts, faces, normals, vertex_colors=values)
     return {"mesh_export": meshexport}
 
-
-def read_nocs_map(nocs_paths):
-    nocs_images = []
-    for nocs_path in nocs_paths:
-        nocs_image = cv2.imread(nocs_path)[:, :, :3]  # Ignore alpha if present
-        nocs_images.append(cv2.cvtColor(nocs_image, cv2.COLOR_BGR2RGB))
-    return nocs_images
-
-def pointcloud2voxel(points, resolution, mode='binary'):
-    ''' Turns a numpy array of xyz coordinates into a voxel grid representation of given resolution'''
-    binary_voxel_grid = VoxelGrid(points=points, n_x=resolution, n_y=resolution, n_z=resolution)
-    binary_voxel_grid.compute()
-    bvg_vector = binary_voxel_grid.get_feature_vector(mode) # [n_x, n_y, n_z] ndarray
-    return bvg_vector
-
-def nocs2voxel(nocs_images, resolution):
-    ''' Turns a tuple of NOCS maps into a binary voxel grid 
-    parameters:
-    nocs_images: a list of nocs_image returned by read_nocs_map (2d array of RGB triplets)
-    '''
-    nocs_pc = []
-    for nocs_image in nocs_images:
-        nocs_map = nocs_ds.NOCSMap(nocs_image)
-        nocs_pc.append(nocs_map.Points) # arr of 0-1 [x,y,z] NOCS coord where object is observed in rgb images (from nocs_map's non-255,255,255 RGB tuples)
-    nocs_pc = np.concatenate(nocs_pc, axis=0) # array of all ocucpied xyz NOCS coordinates from all nocs_images
-    # point_set = nocs_ds.PointSet3D()
-    # point_set.appendAll(nocs_pc)
-    # points = np.array(point_set.Points)
-    points = nocs_pc
-    return pointcloud2voxel(points, resolution)
-
 def calculate_voxel_centers(resolution, min=0, max=1):
     '''returns an array of (x,y,z) coordinates in min-max representing centers of voxel cells
-    Example output fo resolution=2:
+    Example output of resolution=2:
         tensor([[0.2500, 0.2500, 0.2500],
                 [0.2500, 0.2500, 0.7500],
                 [0.7500, 0.2500, 0.2500],
@@ -97,8 +66,38 @@ def calculate_voxel_centers(resolution, min=0, max=1):
     z=x
     xx, yy, zz = np.meshgrid(x, y, z)
     voxel_centers = torch.tensor(np.vstack([xx.ravel(), yy.ravel(), zz.ravel()]).T, dtype=torch.float)
-    voxel_centers = voxel_centers.transpose(0, 1) # (T, 3) -> (3, T)
+    voxel_centers = voxel_centers.transpose(0, 1) # (T=resolution**3, 3) -> (3, T)
     return voxel_centers
+
+def read_nocs_map(nocs_paths):
+    nocs_images = []
+    for nocs_path in nocs_paths:
+        nocs_image = cv2.imread(nocs_path)[:, :, :3]  # Ignore alpha if present
+        nocs_images.append(cv2.cvtColor(nocs_image, cv2.COLOR_BGR2RGB))
+    return nocs_images
+
+def pointcloud2voxel(points, resolution, mode='binary'):
+    ''' Turns a numpy array of xyz coordinates into a voxel grid representation of given resolution'''
+    binary_voxel_grid = VoxelGrid(points=points, n_x=resolution, n_y=resolution, n_z=resolution)
+    binary_voxel_grid.compute()
+    bvg_vector = binary_voxel_grid.get_feature_vector(mode) # [n_x, n_y, n_z] ndarray
+    return bvg_vector
+
+def nocs2voxel(nocs_images, resolution):
+    ''' Turns a list of NOCS maps into a binary voxel grid 
+    parameters:
+    nocs_images: a list of nocs_image returned by read_nocs_map (2d array of RGB triplets)
+    '''
+    nocs_pc = []
+    for nocs_image in nocs_images:
+        nocs_map = nocs_ds.NOCSMap(nocs_image)
+        nocs_pc.append(nocs_map.Points) # arr of 0-1 [x,y,z] NOCS coord where object is observed in rgb images (from nocs_map's non-255,255,255 RGB tuples)
+    nocs_pc = np.concatenate(nocs_pc, axis=0) # array of all ocucpied xyz NOCS coordinates from all nocs_images
+    points = nocs_pc
+    # point_set = nocs_ds.PointSet3D()
+    # point_set.appendAll(nocs_pc)
+    # points = np.array(point_set.Points)
+    return pointcloud2voxel(points, resolution)
 
 def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_grid.jpg'):
     '''visualize binary_voxel_grid, output from pointcloud2voxel()'''
@@ -109,9 +108,9 @@ def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_g
     if to_show:
         plt.show()
 
-# TEST VOXELIZATION #
+
 if __name__ == "__main__":
-    ### For more than 1 object instance:
+    ### For more than 1 object instance: read nocs maps 
     # nocs_paths = []
     # dataDir = "shapenetplain_v1/train/02691156/"
     # for (dirpath, dirnames, filenames) in os.walk(dataDir):
@@ -121,17 +120,28 @@ if __name__ == "__main__":
     #         nocs_paths.extend(files)
     #     break # only one level down
 
-    ### For 1 instance
-    files = os.listdir(config.instance_dir)
-    nocs_paths = [os.path.join(config.instance_dir, f) for f in files if 'NOX' in f]
-    frames = list(set([f[6:14] for f in files]))
-    nocs_images = read_nocs_map(nocs_paths)
-    binary_voxel_grid = nocs2voxel(nocs_images, resolution=config.resolution) # (2,2,2) -> (batch_size, 2,2,2)
-    # voxel_centers = calculate_voxel_centers(config.resolution) # (3,T=8) -> (batch_size, 3, T=8)
-    draw_voxel_grid(binary_voxel_grid)
-    ## Writing of binvox files:
+
+    ### For 1 instance: read nocs map, draw_voxel_grid, write binvox files
+    # files = os.listdir(config.instance_dir)
+    # nocs_paths = [os.path.join(config.instance_dir, f) for f in files if 'NOX' in f]
+    # nocs_images = read_nocs_map(nocs_paths)
+    # binary_voxel_grid = nocs2voxel(nocs_images, resolution=config.resolution) # (2,2,2) -> (batch_size, 2,2,2)
+    # draw_voxel_grid(binary_voxel_grid)
+
+    # frames = list(set([f[6:14] for f in files]))
     # for frame in frames:
     #     with open(f"{config.instance_dir}/frame_{frame}_voxel_grid.binvox", "wb") as f:
     #         voxels = binvox.Voxels(np.array(binary_voxel_grid, dtype=bool), [config.resolution, config.resolution, config.resolution], [0,0,0], 1, "xyz")
     #         voxels.write(f)
-   
+
+
+    ### Generate voxel centers
+    # voxel_centers = calculate_voxel_centers(config.resolution) # (3,T=8) -> (batch_size, 3, T=8)
+
+
+    ### Visualize a binvox file
+    # with open("car_instance/frame_00000000_voxel_grid.binvox", "rb") as f:
+    #     voxels = binvox.read_as_3d_array(f)
+    #     voxel_grid = voxels.data.astype(float)
+    # print(voxel_grid)
+    # draw_voxel_grid(voxel_grid, to_show=True, to_disk=True, fp="car_instance/frame_00000000_voxel_grid.jpg")
