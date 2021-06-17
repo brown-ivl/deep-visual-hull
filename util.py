@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # import trimesh
 from tk3dv.nocstools import datastructures as nocs_ds
 from pyntcloud.structures import VoxelGrid
-import os
-import binvox_rw as binvox
+import os, sys
+import binvox_rw
 import config
 
 def get_grid_uniform(resolution):
@@ -108,6 +108,35 @@ def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_g
     if to_show:
         plt.show()
 
+def get_checkpoint_fp(dir: str):
+    dir += '' if dir.endswith("/") else '/'
+    ckpt_fps = os.listdir(dir)
+    ckpt_fps = [f for f in ckpt_fps if f.endswith(".pth")]
+    ckpt_fps.sort()
+    if len(ckpt_fps) == 0:
+        sys.exit(f"ERROR: cannot find checkpint files in directory '{dir}'")
+    ckpt_fp = os.path.join(dir, ckpt_fps[-1]) # latest checkpoint
+    print("Checkpoint filepath:", ckpt_fp)
+    return ckpt_fp
+
+def save_to_binvox(voxel_grid, resolution, save_path):
+    binvox_ds = binvox_rw.Voxels(
+        data=np.array(voxel_grid, dtype=bool),
+        dims=[resolution, resolution, resolution],
+        translate=[0.0, 0.0, 0.0],
+        scale=1.0,
+        axis_order='xyz'
+    )
+    with open(save_path, 'wb') as f:
+        binvox_ds.write(f)
+
+def read_binvox(binvox_fp):
+    with open(binvox_fp, "rb") as f:
+        voxels = binvox_rw.read_as_3d_array(f)
+    voxel_grid = voxels.data.astype(float)
+    return voxel_grid
+
+
 
 if __name__ == "__main__":
     ### For more than 1 object instance: read nocs maps 
@@ -130,9 +159,7 @@ if __name__ == "__main__":
 
     # frames = list(set([f[6:14] for f in files]))
     # for frame in frames:
-    #     with open(f"{config.instance_dir}/frame_{frame}_voxel_grid.binvox", "wb") as f:
-    #         voxels = binvox.Voxels(np.array(binary_voxel_grid, dtype=bool), [config.resolution, config.resolution, config.resolution], [0,0,0], 1, "xyz")
-    #         voxels.write(f)
+    #     save_to_binvox(binary_voxel_grid, config.resolution, f"{config.instance_dir}/frame_{frame}_voxel_grid.binvox")
 
 
     ### Generate voxel centers
@@ -140,8 +167,6 @@ if __name__ == "__main__":
 
 
     ### Visualize a binvox file
-    # with open("car_instance/frame_00000000_voxel_grid.binvox", "rb") as f:
-    #     voxels = binvox.read_as_3d_array(f)
-    #     voxel_grid = voxels.data.astype(float)
+    # voxel_grid = read_binvox("car_instance/frame_00000000_voxel_grid.binvox")
     # print(voxel_grid)
     # draw_voxel_grid(voxel_grid, to_show=True, to_disk=True, fp="car_instance/frame_00000000_voxel_grid.jpg")
