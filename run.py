@@ -107,6 +107,7 @@ if __name__ == "__main__":
         oldepoch = 0
         if flags.load_ckpt_dir:
             ckpt_fp = util.get_checkpoint_fp(flags.load_ckpt_dir)
+            print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
             model.load_state_dict(torch.load(ckpt_fp))
             oldepoch = int(ckpt_fp[ckpt_fp.rindex("_")+1:-4])
 
@@ -138,6 +139,7 @@ if __name__ == "__main__":
             flags.load_ckpt_dir+= '' if flags.load_ckpt_dir.endswith("/") else '/'
 
         ckpt_fp = util.get_checkpoint_fp(flags.load_ckpt_dir)
+        print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
         test_data = CustomImageDataset(config.instance_dir, config.resolution)

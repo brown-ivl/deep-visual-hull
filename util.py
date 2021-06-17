@@ -116,7 +116,6 @@ def get_checkpoint_fp(dir: str):
     if len(ckpt_fps) == 0:
         sys.exit(f"ERROR: cannot find checkpint files in directory '{dir}'")
     ckpt_fp = os.path.join(dir, ckpt_fps[-1]) # latest checkpoint
-    print("Checkpoint filepath:", ckpt_fp)
     return ckpt_fp
 
 def save_to_binvox(voxel_grid, resolution, save_path):
