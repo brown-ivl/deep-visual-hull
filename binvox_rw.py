@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  Copyright (C) 2012 Daniel Maturana
 #  This file is part of binvox-rw-py.
 #
@@ -26,8 +27,8 @@ Binvox to Numpy and back.
 ...
 >>> m1.dims
 [32, 32, 32]
->>> m1.scale
-41.133000000000003
+>>> round(m1.scale,3)
+41.133
 >>> m1.translate
 [0.0, 0.0, 0.0]
 >>> with open('chair_out.binvox', 'wb') as f:
@@ -62,6 +63,8 @@ True
 """
 
 import numpy as np
+import struct
+
 
 class Voxels(object):
     """ Holds a binvox model.
@@ -102,6 +105,7 @@ class Voxels(object):
     def write(self, fp):
         write(self, fp)
 
+
 def read_header(fp):
     """ Read binvox header. Mostly meant for internal use.
     """
@@ -113,6 +117,7 @@ def read_header(fp):
     scale = list(map(float, fp.readline().strip().split(b' ')[1:]))[0]
     line = fp.readline()
     return dims, translate, scale
+
 
 def read_as_3d_array(fp, fix_coords=True):
     """ Read binary binvox format as array.
@@ -150,6 +155,7 @@ def read_as_3d_array(fp, fix_coords=True):
         axis_order = 'xzy'
     return Voxels(data, dims, translate, scale, axis_order)
 
+
 def read_as_coord_array(fp, fix_coords=True):
     """ Read binary binvox format as coordinates.
 
@@ -166,7 +172,6 @@ def read_as_coord_array(fp, fix_coords=True):
     """
     dims, translate, scale = read_header(fp)
     raw_data = np.frombuffer(fp.read(), dtype=np.uint8)
-
     values, counts = raw_data[::2], raw_data[1::2]
 
     sz = np.prod(dims)
@@ -186,9 +191,11 @@ def read_as_coord_array(fp, fix_coords=True):
     # according to docs,
     # index = x * wxh + z * width + y; // wxh = width * height = d * d
 
-    x = nz_voxels / (dims[0]*dims[1])
-    zwpy = nz_voxels % (dims[0]*dims[1]) # z*w + y
+    x = nz_voxels / (dims[0] * dims[1])
+    x = x.astype(int)
+    zwpy = nz_voxels % (dims[0] * dims[1])  # z*w + y
     z = zwpy / dims[0]
+    z = z.astype(int)
     y = zwpy % dims[0]
     if fix_coords:
         data = np.vstack((x, y, z))
@@ -197,89 +204,51 @@ def read_as_coord_array(fp, fix_coords=True):
         data = np.vstack((x, z, y))
         axis_order = 'xzy'
 
-    #return Voxels(data, dims, translate, scale, axis_order)
+    # return Voxels(data, dims, translate, scale, axis_order)
     return Voxels(np.ascontiguousarray(data), dims, translate, scale, axis_order)
+
 
 def dense_to_sparse(voxel_data, dtype=np.int):
     """ From dense representation to sparse (coordinate) representation.
     No coordinate reordering.
     """
-    if voxel_data.ndim!=3:
+    if voxel_data.ndim != 3:
         raise ValueError('voxel_data is wrong shape; should be 3D array.')
     return np.asarray(np.nonzero(voxel_data), dtype)
 
+
 def sparse_to_dense(voxel_data, dims, dtype=np.bool):
-    if voxel_data.ndim!=2 or voxel_data.shape[0]!=3:
+    if voxel_data.ndim != 2 or voxel_data.shape[0] != 3:
         raise ValueError('voxel_data is wrong shape; should be 3xN array.')
     if np.isscalar(dims):
-        dims = [dims]*3
+        dims = [dims] * 3
     dims = np.atleast_2d(dims).T
     # truncate to integers
     xyz = voxel_data.astype(np.int)
     # discard voxels that fall outside dims
     valid_ix = ~np.any((xyz < 0) | (xyz >= dims), 0)
-    xyz = xyz[:,valid_ix]
+    xyz = xyz[:, valid_ix]
     out = np.zeros(dims.flatten(), dtype=dtype)
     out[tuple(xyz)] = True
     return out
 
-#def get_linear_index(x, y, z, dims):
-    #""" Assuming xzy order. (y increasing fastest.
-    #TODO ensure this is right when dims are not all same
-    #"""
-    #return x*(dims[1]*dims[2]) + z*dims[1] + y
 
-# def write(voxel_model, fp):
-    # """ Write binary binvox format.
+# def get_linear_index(x, y, z, dims):
+# """ Assuming xzy order. (y increasing fastest.
+# TODO ensure this is right when dims are not all same
+# """
+# return x*(dims[1]*dims[2]) + z*dims[1] + y
 
-    # Note that when saving a model in sparse (coordinate) format, it is first
-    # converted to dense format.
+def bwrite(fp, s):
+    fp.write(s.encode())
 
-    # Doesn't check if the model is 'sane'.
 
-    # """
-    # if voxel_model.data.ndim==2:
-    #     # TODO avoid conversion to dense
-    #     dense_voxel_data = sparse_to_dense(voxel_model.data, voxel_model.dims)
-    # else:
-    #     dense_voxel_data = voxel_model.data
+def write_pair(fp, state, ctr):
+    fp.write(struct.pack('B', state))
+    fp.write(struct.pack('B', ctr))
 
-    # fp.write('#binvox 1\n')
-    # fp.write('dim '+' '.join(map(str, voxel_model.dims))+'\n')
-    # fp.write('translate '+' '.join(map(str, voxel_model.translate))+'\n')
-    # fp.write('scale '+str(voxel_model.scale)+'\n')
-    # fp.write('data\n')
-    # if not voxel_model.axis_order in ('xzy', 'xyz'):
-    #     raise ValueError('Unsupported voxel model axis order')
 
-    # if voxel_model.axis_order=='xzy':
-    #     voxels_flat = dense_voxel_data.flatten()
-    # elif voxel_model.axis_order=='xyz':
-    #     voxels_flat = np.transpose(dense_voxel_data, (0, 2, 1)).flatten()
-
-    # # keep a sort of state machine for writing run length encoding
-    # state = voxels_flat[0]
-    # ctr = 0
-    # for c in voxels_flat:
-    #     if c==state:
-    #         ctr += 1
-    #         # if ctr hits max, dump
-    #         if ctr==255:
-    #             fp.write(chr(state))
-    #             fp.write(chr(ctr))
-    #             ctr = 0
-    #     else:
-    #         # if switch state, dump
-    #         fp.write(chr(state))
-    #         fp.write(chr(ctr))
-    #         state = c
-    #         ctr = 1
-    # # flush out remainders
-    # if ctr > 0:
-    #     fp.write(chr(state))
-    #     fp.write(chr(ctr))
-
-def write(voxel_model, fp): # fixed versino
+def write(voxel_model, fp):
     """ Write binary binvox format.
 
     Note that when saving a model in sparse (coordinate) format, it is first
@@ -288,51 +257,46 @@ def write(voxel_model, fp): # fixed versino
     Doesn't check if the model is 'sane'.
 
     """
-    if voxel_model.data.ndim==2:
+    if voxel_model.data.ndim == 2:
         # TODO avoid conversion to dense
         dense_voxel_data = sparse_to_dense(voxel_model.data, voxel_model.dims)
     else:
         dense_voxel_data = voxel_model.data
 
-    fp.write('#binvox 1\n'.encode('ascii'))
-    line = 'dim '+' '.join(map(str, voxel_model.dims))+'\n'
-    fp.write(line.encode('ascii'))
-    line = 'translate '+' '.join(map(str, voxel_model.translate))+'\n'
-    fp.write(line.encode('ascii'))
-    line = 'scale '+str(voxel_model.scale)+'\n'
-    fp.write(line.encode('ascii'))
-    fp.write('data\n'.encode('ascii'))
+    bwrite(fp, '#binvox 1\n')
+    bwrite(fp, 'dim ' + ' '.join(map(str, voxel_model.dims)) + '\n')
+    bwrite(fp, 'translate ' + ' '.join(map(str, voxel_model.translate)) + '\n')
+    bwrite(fp, 'scale ' + str(voxel_model.scale) + '\n')
+    bwrite(fp, 'data\n')
     if not voxel_model.axis_order in ('xzy', 'xyz'):
         raise ValueError('Unsupported voxel model axis order')
 
-    if voxel_model.axis_order=='xzy':
+    if voxel_model.axis_order == 'xzy':
         voxels_flat = dense_voxel_data.flatten()
-    elif voxel_model.axis_order=='xyz':
+    elif voxel_model.axis_order == 'xyz':
         voxels_flat = np.transpose(dense_voxel_data, (0, 2, 1)).flatten()
 
     # keep a sort of state machine for writing run length encoding
     state = voxels_flat[0]
     ctr = 0
     for c in voxels_flat:
-        if c==state:
+        if c == state:
             ctr += 1
             # if ctr hits max, dump
-            if ctr==255:
-                fp.write(state.tobytes())
-                fp.write(ctr.to_bytes(1, byteorder='little'))
+            if ctr == 255:
+                write_pair(fp, state, ctr)
                 ctr = 0
         else:
             # if switch state, dump
-            if ctr > 0:
-                fp.write(state.tobytes())
-                fp.write(ctr.to_bytes(1, byteorder='little'))
+            write_pair(fp, state, ctr)
             state = c
             ctr = 1
     # flush out remainders
     if ctr > 0:
-        fp.write(state.tobytes())
-        fp.write(ctr.to_bytes(1, byteorder='little'))
+        write_pair(fp, state, ctr)
+
 
 if __name__ == '__main__':
     import doctest
+
     doctest.testmod()

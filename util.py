@@ -137,7 +137,7 @@ def read_binvox(binvox_fp):
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     ### For more than 1 object instance: read nocs maps 
     # nocs_paths = []
     # dataDir = "shapenetplain_v1/train/02691156/"
