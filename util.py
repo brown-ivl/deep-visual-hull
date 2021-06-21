@@ -83,7 +83,7 @@ def pointcloud2voxel(points, resolution, mode='binary'):
     bvg_vector = binary_voxel_grid.get_feature_vector(mode) # [n_x, n_y, n_z] ndarray
     return bvg_vector
 
-def nocs2voxel(nocs_images, resolution):
+def nocs2voxel(nocs_images, resolution=config.resolution):
     ''' Turns a list of NOCS maps into a binary voxel grid 
     parameters:
     nocs_images: a list of nocs_image returned by read_nocs_map (2d array of RGB triplets)
@@ -107,6 +107,20 @@ def draw_voxel_grid(binary_voxel_grid, to_show=False, to_disk=False, fp='voxel_g
         plt.savefig(fp)
     if to_show:
         plt.show()
+
+def get_image(path):
+    '''takes an image path and returns a tensor of the shape 3 (num channels) x 224 x 224'''
+    image = imgpath2numpy(path)
+    image = cv2.resize(image, (224, 224))
+    image = torch.tensor(image)
+    image = image.permute(2, 0, 1)
+    return image
+
+def imgpath2numpy(path):
+    path = str(path)
+    image = cv2.imread(path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return image
 
 def get_checkpoint_fp(dir: str):
     dir += '' if dir.endswith("/") else '/'

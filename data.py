@@ -1,40 +1,34 @@
-import os
+import pathlib
 import torch
-from torchvision.transforms import ToTensor
-from util import calculate_voxel_centers
-import binvox_rw as binvox
-import cv2
+import glob
+from util import get_image, nocs2voxel, calculate_voxel_centers, imgpath2numpy
+import config
 
-class CustomImageDataset(torch.utils.data.Dataset):
-    def __init__(self, instance_dir, resolution, transform=None, target_transform=None):
-        self.instance_dir = instance_dir
-        instance_fp = os.listdir(instance_dir)
-        instance_fp.sort()
-        self.image_paths = [os.path.join(instance_dir, f) for f in instance_fp if 'Color_00' in f]
-        self.voxel_grid_paths = [os.path.join(instance_dir, f) for f in instance_fp if 'voxel_grid' in f]
-        self.transform = transform
-        self.target_transform = target_transform
-        self.points = calculate_voxel_centers(resolution)
+
+class DvhObject3d:
+    def __init__(self, nocs_dir_path):
+        self.images = list(map(get_image, list(pathlib.Path(nocs_dir_path).glob('*Color*'))))
+        nocs_maps = list(map(imgpath2numpy, list(pathlib.Path(nocs_dir_path).glob('*NOX*'))))
+        self.voxel_grid = nocs2voxel(nocs_maps)
+
+    def __iter__(self):
+        for image in self.images:
+            yield image[:3, :, :], calculate_voxel_centers(config.resolution).detach().clone(), self.voxel_grid
+
+
+class DvhShapeNetDataset(torch.utils.data.Dataset):
+    def __init__(self, dir_path):
+        directories = glob.glob(f"{dir_path}/*/")
+        self.num_objects = len(directories)
+        self.directories = iter(directories)
+        self.current_object = None
 
     def __len__(self):
-        return len(self.image_paths)
-
-    def get_image(self, path):
-        '''takes an image path and returns a tensor of the shape 3 (num channels) x 224 x 224'''
-        image = cv2.imread(path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (224, 224))
-        image = torch.tensor(image)
-        image = image.permute(2, 0, 1)
-        return image
+        return self.num_objects
 
     def __getitem__(self, idx):
-        image = self.get_image(self.image_paths[idx])
-        with open(self.voxel_grid_paths[idx], "rb") as f:
-            voxels = binvox.read_as_3d_array(f)
-            voxel_grid = voxels.data.astype(float)
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            voxel_grid = self.target_transform(voxel_grid)
-        return image[:3, :, :] , self.points.detach().clone(), voxel_grid
+        try:
+            return next(self.current_object)
+        except:
+            self.current_object = iter(DvhObject3d(next(self.directories)))
+            return next(self.current_object)
