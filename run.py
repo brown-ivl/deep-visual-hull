@@ -89,7 +89,7 @@ if __name__ == "__main__":
     if flags.mode=="train":
         print("TRAIN mode")
         
-        training_data = DvhShapeNetDataset(config.train_dir)
+        training_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         model = dvhNet()
         # summary(model, [(1,3,224,224), (1, 3, 4)])
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
-        test_data = DvhShapeNetDataset(config.test_dir)
+        test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         loss_fn = nn.BCELoss()
         test(test_dataloader, model, loss_fn)
