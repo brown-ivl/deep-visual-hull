@@ -7,23 +7,17 @@ import time
 
 import torch
 import torch.nn as nn
-from torchinfo import summary
-import torchvision
 from torch.utils.tensorboard import SummaryWriter
-print(torch.__version__)
-print(torchvision.__version__)
-
 import numpy as np
-
 import config
-from data import CustomImageDataset
+from data import DvhShapeNetDataset
 import util
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 FileDirPath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(FileDirPath, 'models'))
-from dvhNet import dvhNet
+from models.dvhNet import dvhNet
 
 
 writer = SummaryWriter()
@@ -95,7 +89,7 @@ if __name__ == "__main__":
     if flags.mode=="train":
         print("TRAIN mode")
         
-        training_data = CustomImageDataset(config.instance_dir, config.resolution)
+        training_data = DvhShapeNetDataset(config.train_dir)
         train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         model = dvhNet()
         # summary(model, [(1,3,224,224), (1, 3, 4)])
@@ -142,7 +136,7 @@ if __name__ == "__main__":
         print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
-        test_data = CustomImageDataset(config.instance_dir, config.resolution)
+        test_data = DvhShapeNetDataset(config.test_dir)
         test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         loss_fn = nn.BCELoss()
         test(test_dataloader, model, loss_fn)
