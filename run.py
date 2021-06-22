@@ -65,7 +65,7 @@ def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=No
 
         ## convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred>threshold, as_tuple=True) # tuple of 3 tensors, each the indices of 1 dimensino
-        pointcloud = points[indices[0], :, indices[2]].tolist() # QUESTION: output same order as input points?
+        pointcloud = points[indices[0], :, indices[2]].tolist() # QUESTION: output same order as input points? Result of loss function?
         print("\tpointcloud.shape=", np.array(pointcloud).shape)
         objpointcloud += pointcloud # array of [x,y,z] where pred > threshold
 

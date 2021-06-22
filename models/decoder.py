@@ -43,7 +43,7 @@ class CondResnetBlock(nn.Module):
         super().__init__()
         self.relu = nn.ReLU()
         self.cbn1 = CondBatchNorm(c_dim, f_dim)
-        self.fc1 = nn.Conv1d(f_dim, f_dim, kernel_size=1)
+        self.fc1 = nn.Conv1d(f_dim, f_dim, kernel_size=1) # fully connected layer
         self.cbn2 = CondBatchNorm(c_dim, f_dim)
         self.fc2 = nn.Conv1d(f_dim, f_dim, kernel_size=1)
     
