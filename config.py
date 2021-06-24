@@ -3,5 +3,5 @@ instance_dir = 'car_instance' # "shapenetplain_v1/train/02958343/1a0bc9ab92c9151
 batch_size = 1
 learning_rate = 1e-3
 save_dir = './saved/'
-train_dir = '/Users/aparna/Downloads/shapenetplain_v1/train/02691156'
-test_dir = '/Users/aparna/Downloads/shapenetplain_v1/val/02691156'
+train_dir = '/Users/aparna/Downloads/shapenetplain_v1/train/02958343'
+test_dir = '/Users/aparna/Downloads/shapenetplain_v1/val/02958343'
