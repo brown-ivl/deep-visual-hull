@@ -10,10 +10,11 @@ class DvhObject3d:
         self.images = list(map(get_image, list(pathlib.Path(nocs_dir_path).glob('*Color*'))))
         nocs_maps = list(map(imgpath2numpy, list(pathlib.Path(nocs_dir_path).glob('*NOX*'))))
         self.voxel_grid = nocs2voxel(nocs_maps)
+        self.points = calculate_voxel_centers(config.resolution)
 
     def __iter__(self):
         for image in self.images:
-            yield image[:3, :, :], calculate_voxel_centers(config.resolution).detach().clone(), self.voxel_grid
+            yield image[:3, :, :], self.points.detach().clone(), self.voxel_grid
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
@@ -32,3 +33,6 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         except:
             self.current_object = iter(DvhObject3d(next(self.directories)))
             return next(self.current_object)
+        # if self.current_object is None:
+        #     self.current_object = iter(DvhObject3d(next(self.directories)))
+        # return next(self.current_object)
