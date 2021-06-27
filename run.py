@@ -1,27 +1,24 @@
-#!python3
-
-
-import os, sys
 import argparse
+import os
+import sys
+
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-import numpy as np
+
 import config
+import utils.util as util
 from data import DvhShapeNetDataset
-import util
+from models.DvhNet import DvhNet
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-FileDirPath = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(FileDirPath, 'models'))
-from models.dvhNet import dvhNet
 
 writer = SummaryWriter()  # output to ./runs/ directory by default.
 flags = None
 
 
-def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
+def train_step(dataloader, model, loss_fn, optimizer, device='gpu'):
     """train operations for one epoch"""
     size = len(dataloader.dataset)  # number of samples = 2811
     epochLoss = 0
@@ -89,7 +86,7 @@ if __name__ == "__main__":
         print("Train Mode")
 
         # Initialize model and load checkpoint if passed in
-        model = dvhNet()
+        model = DvhNet()
         startEpoch = 1  # inclusive
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
@@ -135,7 +132,7 @@ if __name__ == "__main__":
 
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
         print("Loading latest checkpoint filepath:", checkpoint_path)
-        model = dvhNet()
+        model = DvhNet()
         model.load_state_dict(torch.load(checkpoint_path))
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)

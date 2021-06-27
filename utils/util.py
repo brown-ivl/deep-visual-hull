@@ -9,7 +9,7 @@ import torch
 from pyntcloud.structures import VoxelGrid
 from tk3dv.nocstools import datastructures as nocs_ds
 import time
-import binvox_rw
+import utils.binvox_rw as binvox_rw
 import config
 
 

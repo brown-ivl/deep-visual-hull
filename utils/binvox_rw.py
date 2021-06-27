@@ -20,8 +20,7 @@
 Binvox to Numpy and back.
 
 
->>> import numpy as np
->>> import binvox_rw
+>>> from utils import binvox_rw import numpy as np
 >>> with open('chair.binvox', 'rb') as f:
 ...     m1 = binvox_rw.read_as_3d_array(f)
 ...
