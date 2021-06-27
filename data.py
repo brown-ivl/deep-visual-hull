@@ -68,6 +68,7 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         image_path = self.image_paths[idx]
         parent_directory = str(pathlib.Path(image_path).parent.absolute())
         if parent_directory not in self.directories_to_objects:
+            print("storing obj")
             self.directories_to_objects[parent_directory] = DvhObject3d(parent_directory, self.resolution)
         else:
             print("using saved obj")
