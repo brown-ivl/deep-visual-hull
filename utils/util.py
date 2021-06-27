@@ -47,7 +47,7 @@ def point_cloud2voxel(points, resolution, mode='binary') -> np.ndarray:
     return binary_voxel_grid.get_feature_vector(mode)
 
 
-def nocs2voxel(nocs_images: List[str], resolution: int = config.resolution) -> np.ndarray:
+def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolution) -> np.ndarray:
     """ Turns a list of NOCS maps into a binary voxel grid
     parameters:
         nocs_images: a list of nocs_image returned by img_path2numpy (2d array of RGB triplets)
