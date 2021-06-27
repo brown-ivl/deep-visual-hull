@@ -1,7 +1,7 @@
 import pathlib
 import torch
 import glob
-from util import get_image, nocs2voxel, calculate_voxel_centers, imgpath2numpy
+from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
@@ -27,7 +27,7 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         else: # */instance/image.png
             instancekey = f"{instance_id}"
         if instancekey not in self.instance_voxel_grids:
-            nocs_maps = list(map(imgpath2numpy, glob.glob(f"{image_path[:last]}/*NOX*")))
+            nocs_maps = list(map(img_path2numpy, glob.glob(f"{image_path[:last]}/*NOX*")))
             self.instance_voxel_grids[instancekey] = nocs2voxel(nocs_maps, self.resolution)
         return get_image(image_path), self.points.detach().clone(), self.instance_voxel_grids[instancekey]
 
