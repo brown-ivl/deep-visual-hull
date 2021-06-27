@@ -64,7 +64,7 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
         nocs_pc = np.concatenate(nocs_pc, axis=0)
     points = nocs_pc
 
-    return point_cloud2voxel(points, resolution)
+    return point_cloud2voxel(np.array(points), resolution)
 
 
 def draw_voxel_grid(binary_voxel_grid: List[bool], to_show: bool = False, to_disk: bool = False,
