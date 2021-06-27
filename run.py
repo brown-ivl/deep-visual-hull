@@ -28,8 +28,11 @@ def train_step(dataloader, model, loss_fn, optimizer):
         images, points, y = images.to(device), points.to(device), y.to(device)
         pred = model(images.float(), points.float())  # predicts on the batch of training data
         reshaped_pred = pred.transpose(1, 2)  # (batch_size, T=8, 1)
-        reshaped_pred = reshaped_pred.reshape(
-            (config.batch_size, config.resolution, config.resolution, config.resolution))
+        try:
+            reshaped_pred = reshaped_pred.reshape(
+                (config.batch_size, config.resolution, config.resolution, config.resolution))
+        except:
+            continue
         loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
         # Backpropagation of predication error
         optimizer.zero_grad()
