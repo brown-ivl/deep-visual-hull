@@ -106,13 +106,13 @@ if __name__ == "__main__":
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_data = nc.SafeDataset(train_data)
-        train_dataloader = torch.utils.data.DataLoader(train_data,
-                                                       batch_size=config.batch_size)
+        train_dataloader = nc.SafeDataLoader(train_data,
+                                             batch_size=config.batch_size)
 
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         val_data = nc.SafeDataset(val_data)
-        val_dataloader = torch.utils.data.DataLoader(val_data,
-                                                     batch_size=config.batch_size)  # shuffle=True, num_workers=4
+        val_dataloader = nc.SafeDataLoader(val_data,
+                                           batch_size=config.batch_size)  # shuffle=True, num_workers=4
 
         # Train and Validate
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)  # weight_decay=1e-5
