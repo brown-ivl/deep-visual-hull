@@ -32,41 +32,38 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
             self.instance_voxel_grids[instancekey] = nocs2voxel(nocs_maps, self.resolution)
         return get_image(image_path), self.points.detach().clone(), self.instance_voxel_grids[instancekey]
 """
-
 import pathlib
 import torch
 import glob
 from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
 
 COLOR_IMAGE_FILE_PATH_PATTERN = "*Color_00*"
-NOCS_MAP_FILE_PATH_PATTERN = "*NOX*00*"
-
-
-class DvhObject3d:
-    def __init__(self, nocs_dir_path: str, resolution: int):
-        # image_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(COLOR_IMAGE_FILE_PATH_PATTERN))))
-        nocs_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(NOCS_MAP_FILE_PATH_PATTERN))))
-        # self.images = list(map(get_image, image_paths))
-        nocs_maps = list(map(img_path2numpy, nocs_paths))
-        self.voxel_grid = nocs2voxel(nocs_maps, resolution)
+NOCS_MAP_FILE_PATH_PATTERN = "*NOX*"
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, dir_path, resolution):
         self.voxel_centers = calculate_voxel_centers(resolution)
-        self.directories = glob.glob(f"{dir_path}/*/")
         self.resolution = resolution
-        self.directories_to_objects = dict()
+        self.object_id_2_voxel_grid = dict()
         self.image_paths = glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")
 
     def __len__(self):
         return len(self.image_paths)
 
+    def get_voxel_grid_for_object(self, object_path):
+        nocs_paths = list(map(str, list(pathlib.Path(object_path).glob(NOCS_MAP_FILE_PATH_PATTERN))))
+        nocs_maps = list(map(img_path2numpy, nocs_paths))
+        return nocs2voxel(nocs_maps, self.resolution)
+
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        parent_directory = str(pathlib.Path(image_path).parent.absolute())
-        if parent_directory not in self.directories_to_objects:
-            self.directories_to_objects[parent_directory] = DvhObject3d(parent_directory, self.resolution)
-        obj = self.directories_to_objects[parent_directory]
+        parent_dir = pathlib.Path(image_path).parent
 
-        return get_image(image_path), self.voxel_centers.detach().clone(), obj.voxel_grid
+        object_id = str(parent_dir.stem)
+        category_id = str(parent_dir.parent.stem)
+
+        if object_id not in self.object_id_2_voxel_grid:
+            self.object_id_2_voxel_grid[object_id] = self.get_voxel_grid_for_object(str(parent_dir))
+
+        return get_image(image_path), self.voxel_centers.detach().clone(), self.object_id_2_voxel_grid[object_id]
