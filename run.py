@@ -20,7 +20,7 @@ sys.path.append(os.path.join(FileDirPath, 'models'))
 from models.dvhNet import dvhNet
 
 
-writer = SummaryWriter()
+writer = SummaryWriter() # output to ./runs/ directory by default.
 flags = None
 
 
@@ -74,11 +74,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default="train",
-        help="One of 'train' or 'test'")
+        help="One of 'train' or 'test'.")
     parser.add_argument('--save_dir', type=str, default=config.save_dir, 
         help="The directory to store the .pth model files and val/test visualization images.")
     parser.add_argument('--load_ckpt_dir', type=str,
-        help="The directory to load .pth model files from. Required for test mode; used for resuming training for train mode")
+        help="The directory to load .pth model files from. Required for test mode; used for resuming training for train mode.")
+    parser.add_argument('--num_epoches', type=int, default=5,
+        help="Number of epoches to train for.")
     flags, unparsed = parser.parse_known_args()
     
     # Settings shared across train and test
@@ -95,35 +97,37 @@ if __name__ == "__main__":
 
         # Initiatilize model and load checkpoint if passed in
         model = dvhNet()
-        oldepoch = 0
+        startEpoch = 1 # inclusive
         if flags.load_ckpt_dir:
             ckpt_fp = util.get_checkpoint_fp(flags.load_ckpt_dir)
             print("Loading load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
             model.load_state_dict(torch.load(ckpt_fp))
-            oldepoch = int(ckpt_fp[ckpt_fp.rindex("_")+1:-4])
+            startEpoch = int(ckpt_fp[ckpt_fp.rindex("_")+1:-4])+1
         
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         if len(train_data) == 0: sys.exit(f"ERROR: training data not found at {config.train_dir}")
+        print(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_data)} images")
         train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         if len(val_data) == 0: sys.exit(f"ERROR: validation data not found at {config.test_dir}")
+        print(f"Created val_data DvhShapeNetDataset from {config.train_dir}: {len(val_data)} images")
         val_dataloader = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
 
         # Train and Validate
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
         # optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) #momentum=0.9 (like beta), nesterov=True, weight_decay=1e-5
-        epochs = 3
-        for epoch_idx in range(oldepoch, oldepoch+epochs):
-            print(f"-------------------------------\nEpoch {epoch_idx+1}")
+        print(f"Training for epoches {startEpoch}-{startEpoch+flags.num_epoches-1} ({flags.num_epoches} epoches)")
+        for epoch_idx in range(startEpoch, startEpoch+flags.num_epoches):
+            print(f"-------------------------------\nEpoch {epoch_idx}")
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
             print(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             writer.add_scalar("Loss/train", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 50 == 0:
-                torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx+1}.pth')
-                test(val_dataloader, model, loss_fn, after_epoch=epoch_idx+1)
-        torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{oldepoch+epochs}.pth')
-        test(val_dataloader, model, loss_fn, after_epoch=oldepoch+epochs)
+                torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
+                test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
+        torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{startEpoch+flags.num_epoches-1}.pth')
+        test(val_dataloader, model, loss_fn, after_epoch=startEpoch+flags.num_epoches-1)
 
         writer.flush()
         writer.close()
@@ -141,7 +145,10 @@ if __name__ == "__main__":
         print("Loading load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
+
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        if len(test_data) == 0: sys.exit(f"ERROR: test data not found at {config.test_dir}")
+        print(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
         test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
         test(test_dataloader, model, loss_fn)
 

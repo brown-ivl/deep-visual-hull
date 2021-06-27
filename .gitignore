@@ -1,9 +1,9 @@
 # Data
 shapenetplain_v1/
 saved/
+data/
+runs/
 .vscode/
-
-
 
 
 
@@ -139,6 +139,3 @@ dmypy.json
 .pyre/
 
 .idea/
-
-data/
-runs/
