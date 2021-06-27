@@ -52,9 +52,12 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
-        reshaped_pred = pred.transpose(1, 2).reshape(
-            (config.batch_size, config.resolution, config.resolution, config.resolution))
-        testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
+        try:
+            reshaped_pred = pred.transpose(1, 2).reshape(
+                (config.batch_size, config.resolution, config.resolution, config.resolution))
+            testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
+        except:
+            continue
         # convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
         pointcloud = points[indices[0], :,
@@ -106,13 +109,13 @@ if __name__ == "__main__":
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_data = nc.SafeDataset(train_data)
-        train_dataloader = nc.SafeDataLoader(train_data,
-                                             batch_size=config.batch_size)
+        train_dataloader = torch.utils.data.DataLoader(train_data,
+                                                       batch_size=config.batch_size)
 
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         val_data = nc.SafeDataset(val_data)
-        val_dataloader = nc.SafeDataLoader(val_data,
-                                           batch_size=config.batch_size)  # shuffle=True, num_workers=4
+        val_dataloader = torch.utils.data.DataLoader(val_data,
+                                                     batch_size=config.batch_size)  # shuffle=True, num_workers=4
 
         # Train and Validate
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)  # weight_decay=1e-5
