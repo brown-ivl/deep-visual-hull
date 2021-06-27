@@ -48,16 +48,18 @@ class DvhObject3d:
         # self.images = list(map(get_image, image_paths))
         nocs_maps = list(map(img_path2numpy, nocs_paths))
         self.voxel_grid = nocs2voxel(nocs_maps, resolution)
-        self.voxel_centers = calculate_voxel_centers(resolution).detach().clone()
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, dir_path, resolution):
-
-        self.directories = list(map(str, glob.glob(f"{dir_path}/*/")))
+        self.voxel_centers = calculate_voxel_centers(resolution)
+        self.directories = glob.glob(f"{dir_path}/*/")
         self.resolution = resolution
         self.directories_to_objects = dict()
-        self.image_paths = (glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}"))
+        self.image_paths = glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")
+        print(self.directories)
+        print(self.image_paths)
+
 
     def __len__(self):
         return len(self.image_paths)
@@ -69,4 +71,4 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
             self.directories_to_objects[parent_directory] = DvhObject3d(parent_directory, self.resolution)
         obj = self.directories_to_objects[parent_directory]
 
-        return get_image(image_path), obj.voxel_centers, obj.voxel_grid
+        return get_image(image_path), self.voxel_centers.detach().clone(), obj.voxel_grid
