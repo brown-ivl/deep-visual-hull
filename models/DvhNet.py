@@ -1,6 +1,6 @@
 import torch.nn as nn
-from encoder import DeepVisualHullEncoder
-from decoder import DeepVisualHullDecoder
+from models.encoder import DeepVisualHullEncoder
+from models.decoder import DeepVisualHullDecoder
 
 
 class DvhNet(nn.Module):
