@@ -37,7 +37,6 @@ import pathlib
 import torch
 import glob
 from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
-from itertools import cycle
 
 COLOR_IMAGE_FILE_PATH_PATTERN = "*Color_00*"
 NOCS_MAP_FILE_PATH_PATTERN = "*NOX*00*"
@@ -49,8 +48,7 @@ class DvhObject3d:
         # self.images = list(map(get_image, image_paths))
         nocs_maps = list(map(img_path2numpy, nocs_paths))
         self.voxel_grid = nocs2voxel(nocs_maps, resolution)
-        self.resolution = resolution
-        self.voxel_centers = calculate_voxel_centers(self.resolution).detach().clone()
+        self.voxel_centers = calculate_voxel_centers(resolution).detach().clone()
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
@@ -68,10 +66,7 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         image_path = self.image_paths[idx]
         parent_directory = str(pathlib.Path(image_path).parent.absolute())
         if parent_directory not in self.directories_to_objects:
-            print("storing obj")
             self.directories_to_objects[parent_directory] = DvhObject3d(parent_directory, self.resolution)
-        else:
-            print("using saved obj")
         obj = self.directories_to_objects[parent_directory]
 
         return get_image(image_path), obj.voxel_centers, obj.voxel_grid
