@@ -91,6 +91,8 @@ if __name__ == "__main__":
 
         # Initialize model and load checkpoint if passed in
         model = DvhNet()
+        if torch.cuda.is_available():
+            model.cuda()
         startEpoch = 1  # inclusive
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
@@ -137,6 +139,8 @@ if __name__ == "__main__":
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
         print("Loading latest checkpoint filepath:", checkpoint_path)
         model = DvhNet()
+        if torch.cuda.is_available():
+            model.cuda()
         model.load_state_dict(torch.load(checkpoint_path))
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
