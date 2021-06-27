@@ -19,7 +19,7 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, dir_path, resolution):
         directories = glob.glob(f"{dir_path}/*/")
         self.num_objects = len(directories)
-        self.num_images = len((glob.glob(f"{dir_path}/*/*Color*")))
+        self.num_images = len((glob.glob(f"{dir_path}/*/*Color_00*")))
         self.directories = iter(directories)
         self.current_object = None
         self.resolution = resolution
