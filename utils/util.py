@@ -12,6 +12,8 @@ import time
 import utils.binvox_rw as binvox_rw
 import config
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def calculate_voxel_centers(resolution: int, min: int = 0, max: int = 1) -> torch.Tensor:
     """returns an array of (x,y,z) coordinates in min-max representing centers of voxel cells
@@ -35,7 +37,7 @@ def calculate_voxel_centers(resolution: int, min: int = 0, max: int = 1) -> torc
     xx, yy, zz = np.meshgrid(x, y, z)
     voxel_centers = torch.tensor(np.vstack([xx.ravel(), yy.ravel(), zz.ravel()]).T, dtype=torch.float)
     voxel_centers = voxel_centers.transpose(0, 1)  # (T=resolution**3, 3) -> (3, T)
-    return voxel_centers
+    return voxel_centers.to(device)
 
 
 def point_cloud2voxel(points, resolution, mode='binary') -> np.ndarray:
@@ -78,7 +80,7 @@ def get_image(path: str) -> torch.Tensor:
     image = torch.tensor(image)
     # TODO: are we permuting this to swivel color channels, if so get rid of this.
     image = image.permute(2, 0, 1)
-    return image
+    return image.to(device)
 
 
 def img_path2numpy(path: str) -> np.ndarray:
