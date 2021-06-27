@@ -7,3 +7,4 @@ matplotlib~=3.3.4
 git+https://github.com/drsrinathsridhar/tk3dv.git
 pyntcloud~=0.1.4
 numpy>=1.19.2
+nonechucks

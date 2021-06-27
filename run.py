@@ -1,7 +1,7 @@
 import argparse
 import os
 import sys
-
+import nonechucks as nc
 import numpy as np
 import torch
 import torch.nn as nn
@@ -105,10 +105,12 @@ if __name__ == "__main__":
 
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
+        train_data = nc.SafeDataset(train_data)
         train_dataloader = torch.utils.data.DataLoader(train_data,
                                                        batch_size=config.batch_size)
 
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        val_data = nc.SafeDataset(val_data)
         val_dataloader = torch.utils.data.DataLoader(val_data,
                                                      batch_size=config.batch_size)  # shuffle=True, num_workers=4
 

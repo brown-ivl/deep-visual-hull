@@ -54,17 +54,12 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
     """
     nocs_pc = []
     for nocs_image in nocs_images:
-        try:
-            nocs_map = nocs_ds.NOCSMap(nocs_image)
-        except:
-            cv2.imwrite(f"{os.getcwd()}/error/{get_timestamp()}_error.jpg", nocs_image)
-            continue
+        nocs_map = nocs_ds.NOCSMap(nocs_image)
         nocs_pc.append(nocs_map.Points)
-    if len(nocs_pc) > 0:
-        nocs_pc = np.concatenate(nocs_pc, axis=0)
+    nocs_pc = np.concatenate(nocs_pc, axis=0)
     points = nocs_pc
 
-    return point_cloud2voxel(np.array(points), resolution)
+    return point_cloud2voxel(points, resolution)
 
 
 def draw_voxel_grid(binary_voxel_grid: List[bool], to_show: bool = False, to_disk: bool = False,
