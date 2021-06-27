@@ -18,8 +18,10 @@ writer = SummaryWriter()  # output to ./runs/ directory by default.
 flags = None
 
 
-def train_step(dataloader, model, loss_fn, optimizer, device='gpu'):
+def train_step(dataloader, model, loss_fn, optimizer):
     """train operations for one epoch"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     size = len(dataloader.dataset)  # number of samples = 2811
     epochLoss = 0
     for batch_idx, (images, points, y) in enumerate(dataloader):
@@ -41,7 +43,9 @@ def train_step(dataloader, model, loss_fn, optimizer, device='gpu'):
     return epochMeanLoss
 
 
-def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=None):
+def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     """model: with loaded checkpoint or trained parameters"""
     testLosses = []
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
