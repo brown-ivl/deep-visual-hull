@@ -54,7 +54,6 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
     def get_voxel_grid_for_object(self, object_path):
         nocs_paths = list(map(str, list(pathlib.Path(object_path).glob(NOCS_MAP_FILE_PATH_PATTERN))))
         nocs_maps = list(map(img_path2numpy, nocs_paths))
-        print(nocs_paths)
         return nocs2voxel(nocs_maps, self.resolution)
 
     def __getitem__(self, idx):
