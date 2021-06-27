@@ -57,7 +57,7 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
         try:
             nocs_map = nocs_ds.NOCSMap(nocs_image)
         except:
-            print(nocs_image)
+            cv2.imwrite(f"{os.getcwd()}/error/{get_timestamp()}_error.jpg", nocs_map)
             continue
         nocs_pc.append(nocs_map.Points)
     nocs_pc = np.concatenate(nocs_pc, axis=0)
