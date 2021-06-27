@@ -41,6 +41,7 @@ from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
 COLOR_IMAGE_FILE_PATH_PATTERN = "*Color_00*"
 NOCS_MAP_FILE_PATH_PATTERN = "*NOX*00*"
 
+
 class DvhObject3d:
     def __init__(self, nocs_dir_path: str, resolution: int):
         # image_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(COLOR_IMAGE_FILE_PATH_PATTERN))))
@@ -59,7 +60,6 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         self.image_paths = glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")
         print(self.directories)
         print(self.image_paths)
-
 
     def __len__(self):
         return len(self.image_paths)
