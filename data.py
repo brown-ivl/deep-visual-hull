@@ -58,8 +58,6 @@ class DvhShapeNetDataset(torch.utils.data.Dataset):
         self.resolution = resolution
         self.directories_to_objects = dict()
         self.image_paths = glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")
-        print(self.directories)
-        print(self.image_paths)
 
     def __len__(self):
         return len(self.image_paths)
