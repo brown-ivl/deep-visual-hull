@@ -9,5 +9,5 @@ save_dir = './saved/'
 # train_dir = '/Users/annawei/Tech/IVL/shapenetplain_v1/train/test'
 # test_dir = '/Users/annawei/Tech/IVL/shapenetplain_v1/train/test'
 # # On CCV
-train_dir = '/users/qwei3/data/qwei3/shapenetplain_v1/train/02958343'
-test_dir = '/users/qwei3/data/qwei3/shapenetplain_v1/val/02958343'
+train_dir = '/gpfs/data/ssrinath/shapenetplain_v1/train/02958343'
+test_dir = '/gpfs/data/ssrinath/shapenetplain_v1/val/02958343'
