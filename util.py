@@ -86,7 +86,7 @@ def pointcloud2voxel(points, resolution, mode='binary'):
 def nocs2voxel(nocs_images, resolution=config.resolution):
     ''' Turns a list of NOCS maps into a binary voxel grid 
     parameters:
-    nocs_images: a list of nocs_image returned by read_nocs_map (2d array of RGB triplets)
+    nocs_images: a list of nocs_image returned by imgpath2numpy (2d array of RGB triplets)
     '''
     nocs_pc = []
     for nocs_image in nocs_images:

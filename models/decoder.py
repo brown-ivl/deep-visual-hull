@@ -90,4 +90,4 @@ class CondBatchNorm(nn.Module):
 
 if __name__ == "__main__":
     decoder = DeepVisualHullDecoder()
-    summary(decoder, [(1,3,4), (1,256)])
+    summary(decoder, [(1,3,8), (1,256)])

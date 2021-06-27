@@ -26,7 +26,8 @@ flags = None
 
 def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
     '''train operations for one epoch'''
-    # size = len(dataloader.dataset) # number of samples
+    size = len(dataloader.dataset) # number of samples = 2811
+    epochLoss = 0
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device) 
         pred = model(images.float(), points.float()) # predicts on the batch of training data
@@ -37,45 +38,39 @@ def train_step(dataloader, model, loss_fn, optimizer, device='cpu'):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step() 
-	
-        if batch_idx % 100 == 0:
-            loss, current = loss.item(), batch_idx * len(images) # (batch size)
-            print(f"Train loss: {loss:>7f}") # [{current:>5d}/{size:>5d}]
 
-    return loss
+        epochLoss += loss.item()
+        epochMeanLoss = epochLoss/(batch_idx+1)
+        current = (batch_idx+1) * len(images) # len(images)=batch size
+        print(f"\tBatch={batch_idx+1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
+    return epochMeanLoss
 
 def test(dataloader, model, loss_fn, threshold=0.5, device='cpu', after_epoch=None):
     '''model: with loaded checkpoint or trained parameters'''
     testLosses = []
     objpointcloud = [] # append points from each image-occupancy pair together for one visualization per object
     for batch_idx, (images, points, y) in enumerate(dataloader):
-        print("\t----", batch_idx)
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         pred = model(images.float(), points.float()) # (batch_size, 1, T=16**3=4096)
-        # print("\tpred=", pred)
         reshaped_pred = pred.transpose(1, 2).reshape((config.batch_size, config.resolution, config.resolution, config.resolution))
         testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
-        print(f"\tTest loss: {np.mean(np.asarray(testLosses)):>7f}")
-
         ## convert prediction to point cloud, then to voxel grid
-        indices = torch.nonzero(pred>threshold, as_tuple=True) # tuple of 3 tensors, each the indices of 1 dimensino
-        pointcloud = points[indices[0], :, indices[2]].tolist() # QUESTION: output same order as input points? Result of loss function?
-        print("\tpointcloud.shape=", np.array(pointcloud).shape)
+        indices = torch.nonzero(pred>threshold, as_tuple=True) # tuple of 3 tensors, each the indices of 1 dimension
+        pointcloud = points[indices[0], :, indices[2]].tolist() # QUESTION: output pred same order as input points? Result of loss function?
         objpointcloud += pointcloud # array of [x,y,z] where pred > threshold
-
     objpointcloud = np.array(objpointcloud)
-    print("objpointcloud.shape=", objpointcloud.shape)
     if len(objpointcloud) != 0:
         voxel = util.pointcloud2voxel(objpointcloud, config.resolution)
         voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.jpg"
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
         binvox_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.binvox" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.binvox"
         util.save_to_binvox(voxel, config.resolution, binvox_fp)
+    print(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f} | objpointcloud.shape={objpointcloud.shape}")
 
 
 if __name__ == "__main__":
     timestamp = str(int(time.time()))
-    print(f"################# Timestamp = {timestamp} #################")
+    print(f"\n################# Timestamp = {timestamp} #################")
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default="train",
@@ -86,42 +81,52 @@ if __name__ == "__main__":
         help="The directory to load .pth model files from. Required for test mode; used for resuming training for train mode")
     flags, unparsed = parser.parse_known_args()
     
+    # Settings shared across train and test
+    loss_fn = nn.BCELoss()
+
     if flags.mode=="train":
         print("TRAIN mode")
-        
-        training_data = DvhShapeNetDataset(config.train_dir, config.resolution)
-        train_dataloader = torch.utils.data.DataLoader(training_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
-        model = dvhNet()
-        # summary(model, [(1,3,224,224), (1, 3, 4)])
 
+        # Check save dir
         flags.save_dir += f'{timestamp}/' if flags.save_dir.endswith("/") else f'{timestamp}/'
         if os.path.exists(flags.save_dir) == False:
             os.makedirs(flags.save_dir)
         print("save_dir=",flags.save_dir)
+
+        # Initiatilize model and load checkpoint if passed in
+        model = dvhNet()
         oldepoch = 0
         if flags.load_ckpt_dir:
             ckpt_fp = util.get_checkpoint_fp(flags.load_ckpt_dir)
-            print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
+            print("Loading load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
             model.load_state_dict(torch.load(ckpt_fp))
             oldepoch = int(ckpt_fp[ckpt_fp.rindex("_")+1:-4])
+        
+        # Set up data
+        train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
+        if len(train_data) == 0: sys.exit(f"ERROR: training data not found at {config.train_dir}")
+        train_dataloader = torch.utils.data.DataLoader(train_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
+        val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        if len(val_data) == 0: sys.exit(f"ERROR: validation data not found at {config.test_dir}")
+        val_dataloader = torch.utils.data.DataLoader(val_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
 
-        loss_fn = nn.BCELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
-
-        epochs = 5
+        # Train and Validate
+        optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
+        # optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) #momentum=0.9 (like beta), nesterov=True, weight_decay=1e-5
+        epochs = 3
         for epoch_idx in range(oldepoch, oldepoch+epochs):
             print(f"-------------------------------\nEpoch {epoch_idx+1}")
-            loss = train_step(train_dataloader, model, loss_fn, optimizer)
-            writer.add_scalar("Loss/train", loss, global_step=epoch_idx)
-            if epoch_idx % 100 == 0:
+            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
+            print(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
+            writer.add_scalar("Loss/train", epochMeanLoss, global_step=epoch_idx)
+            if epoch_idx % 50 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx+1}.pth')
-                test(train_dataloader, model, loss_fn, after_epoch=epoch_idx+1)
+                test(val_dataloader, model, loss_fn, after_epoch=epoch_idx+1)
         torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{oldepoch+epochs}.pth')
-        test(train_dataloader, model, loss_fn, after_epoch=oldepoch+epochs)
+        test(val_dataloader, model, loss_fn, after_epoch=oldepoch+epochs)
 
         writer.flush()
         writer.close()
-
         print("################# Done #################")
 
 
@@ -133,12 +138,11 @@ if __name__ == "__main__":
             flags.load_ckpt_dir+= '' if flags.load_ckpt_dir.endswith("/") else '/'
 
         ckpt_fp = util.get_checkpoint_fp(flags.load_ckpt_dir)
-        print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
+        print("Loading load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=config.batch_size) # shuffle=True, num_workers=4
-        loss_fn = nn.BCELoss()
         test(test_dataloader, model, loss_fn)
 
         print("################# Done #################")

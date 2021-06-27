@@ -1,6 +1,12 @@
 # Data
 shapenetplain_v1/
 saved/
+.vscode/
+
+
+
+
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
