@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from pyntcloud.structures import VoxelGrid
 from tk3dv.nocstools import datastructures as nocs_ds
-
+import time
 import binvox_rw
 import config
 
@@ -93,6 +93,19 @@ def get_checkpoint_fp(directory_path: str) -> str:
         return max(glob.glob(os.path.join(directory_path, "*.pth")), key=os.path.getctime)
     except ValueError:
         sys.exit(f"ERROR: cannot find checkpoint files in directory '{directory_path}'")
+
+
+def get_timestamp() -> str:
+    return str(int(time.time()))
+
+
+def create_checkpoint_directory(directory_path: str) -> str:
+    timestamp = get_timestamp()
+    checkpoint_dir = os.path.join(directory_path, f'{timestamp}/')
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+    print("save_dir=", checkpoint_dir)
+    return checkpoint_dir
 
 
 def save_to_binvox(voxel_grid: List[bool], resolution: int, save_path: str) -> ():
