@@ -54,8 +54,11 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
     """
     nocs_pc = []
     for nocs_image in nocs_images:
-        print(nocs_image.shape)
-        nocs_map = nocs_ds.NOCSMap(nocs_image)
+        try:
+            nocs_map = nocs_ds.NOCSMap(nocs_image)
+        except:
+            print(nocs_image)
+            continue
         nocs_pc.append(nocs_map.Points)
     nocs_pc = np.concatenate(nocs_pc, axis=0)
     points = nocs_pc
