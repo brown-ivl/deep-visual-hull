@@ -60,7 +60,8 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
             cv2.imwrite(f"{os.getcwd()}/error/{get_timestamp()}_error.jpg", nocs_image)
             continue
         nocs_pc.append(nocs_map.Points)
-    nocs_pc = np.concatenate(nocs_pc, axis=0)
+    if len(nocs_pc) > 0:
+        nocs_pc = np.concatenate(nocs_pc, axis=0)
     points = nocs_pc
 
     return point_cloud2voxel(points, resolution)
