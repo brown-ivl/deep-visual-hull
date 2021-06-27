@@ -37,40 +37,41 @@ import pathlib
 import torch
 import glob
 from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
+from itertools import cycle
 
 COLOR_IMAGE_FILE_PATH_PATTERN = "*Color_00*"
 NOCS_MAP_FILE_PATH_PATTERN = "*NOX*00*"
 
-
 class DvhObject3d:
     def __init__(self, nocs_dir_path: str, resolution: int):
-        image_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(COLOR_IMAGE_FILE_PATH_PATTERN))))
+        # image_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(COLOR_IMAGE_FILE_PATH_PATTERN))))
         nocs_paths = list(map(str, list(pathlib.Path(nocs_dir_path).glob(NOCS_MAP_FILE_PATH_PATTERN))))
-        self.images = list(map(get_image, image_paths))
+        # self.images = list(map(get_image, image_paths))
         nocs_maps = list(map(img_path2numpy, nocs_paths))
         self.voxel_grid = nocs2voxel(nocs_maps, resolution)
         self.resolution = resolution
-
-    def __iter__(self):
-        for image in self.images:
-            yield image[:3, :, :], calculate_voxel_centers(self.resolution).detach().clone(), self.voxel_grid
+        self.voxel_centers = calculate_voxel_centers(self.resolution).detach().clone()
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
     def __init__(self, dir_path, resolution):
-        directories = glob.glob(f"{dir_path}/*/")
-        self.num_objects = len(directories)
-        self.num_images = len((glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")))
-        self.directories = iter(directories)
-        self.current_object = None
+
+        self.directories = list(map(str, glob.glob(f"{dir_path}/*/")))
         self.resolution = resolution
+        self.directories_to_objects = dict()
+        self.image_paths = (glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}"))
 
     def __len__(self):
-        return self.num_images
+        return len(self.image_paths)
 
     def __getitem__(self, idx):
-        try:
-            return next(self.current_object)
-        except:
-            self.current_object = iter(DvhObject3d(next(self.directories), self.resolution))
-            return next(self.current_object)
+        image_path = self.image_paths[idx]
+        obj = None
+        parent_directory = pathlib.Path(image_path).parent.absolute()
+        if parent_directory in self.directories_to_objects:
+            print("using saved object")
+            obj = self.directories_to_objects[parent_directory]
+        else:
+            obj = DvhObject3d(parent_directory, self.resolution)
+
+        return get_image(image_path), obj.voxel_centers, obj.voxel_grid
