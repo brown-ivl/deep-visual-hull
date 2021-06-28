@@ -53,6 +53,7 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
     pointcloud = point_centers[:,
                  indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
     if len(pointcloud) != 0:
+        print(pointcloud.shape)
         voxel = util.point_cloud2voxel(pointcloud, config.resolution)
         voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg"))
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
