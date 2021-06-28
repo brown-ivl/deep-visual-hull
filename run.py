@@ -54,7 +54,7 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
-        with torch.no_grad:
+        with torch.no_grad():
             pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
         try:
             reshaped_pred = pred.transpose(1, 2).reshape(
