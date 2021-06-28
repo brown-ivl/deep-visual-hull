@@ -46,9 +46,8 @@ def train_step(dataloader, model, loss_fn, optimizer):
     return epochMeanLoss
 
 
-def visualize_predictions(pred, name, point_centers, threshold=0.5):
+def visualize_predictions(pred, name, point_centers, threshold=0.1):
     indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    print(indices.shape)
     pointcloud = point_centers[indices[0], :,
                  indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
     if len(pointcloud) != 0:
