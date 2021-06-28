@@ -50,7 +50,7 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
     indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
     print(point_centers.shape)
     print(pred)
-    pointcloud = point_centers[indices[0], :,
+    pointcloud = point_centers[:,
                  indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
     if len(pointcloud) != 0:
         voxel = util.point_cloud2voxel(pointcloud, config.resolution)
