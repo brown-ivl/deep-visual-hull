@@ -67,6 +67,8 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
         pointcloud = points[indices[0], :,
                      indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
         objpointcloud += pointcloud  # array of [x,y,z] where pred > threshold
+        print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
+
     objpointcloud = np.array(objpointcloud)
     if len(objpointcloud) != 0:
         voxel = util.point_cloud2voxel(objpointcloud, config.resolution)
