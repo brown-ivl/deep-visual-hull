@@ -47,14 +47,10 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
-    indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    print(point_centers.shape)
-    print(pred)
-    pointcloud = point_centers[:,
-                 indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
-    if len(pointcloud) != 0:
-        print(pointcloud.shape)
-        voxel = util.point_cloud2voxel(pointcloud, config.resolution)
+    point_cloud = point_centers[pred > threshold].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
+    if len(point_cloud) != 0:
+        print(point_cloud.shape)
+        voxel = util.point_cloud2voxel(point_cloud, config.resolution)
         voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg"))
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
         binvox_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.binvox"))
@@ -85,6 +81,7 @@ def test(dataloader, model, loss_fn):
         epoch_mean_loss = epochLoss / (batch_idx + 1)
 
         for idx, pred in enumerate(reshaped_pred):
+
             visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
 
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
