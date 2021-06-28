@@ -59,9 +59,9 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
     if len(point_cloud) != 0:
         print(point_cloud.shape)
         voxel = util.point_cloud2voxel(point_cloud, config.resolution)
-        voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg"))
+        voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg").resolve())
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
-        binvox_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.binvox"))
+        binvox_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.binvox").resolve())
         util.save_to_binvox(voxel, config.resolution, binvox_fp)
 
 
