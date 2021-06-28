@@ -47,7 +47,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
-    point_cloud = point_centers[pred > threshold].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
+    point_cloud = point_centers[pred > threshold].numpy()  # QUESTION: output pred same order as input points? Result of loss function?
     if len(point_cloud) != 0:
         print(point_cloud.shape)
         voxel = util.point_cloud2voxel(point_cloud, config.resolution)
