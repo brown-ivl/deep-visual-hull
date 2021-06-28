@@ -17,6 +17,11 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 writer = SummaryWriter()  # output to ./runs/ directory by default.
 flags = None
 
+def log(message):
+    print(message)
+    log_fp = str(Path(flags.save_dir, "log.txt").resolve())
+    with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
+        file.write(f"{message}\n")
 
 def train_step(dataloader, model, loss_fn, optimizer):
     """train operations for one epoch"""
@@ -42,7 +47,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
         epochLoss += loss.item()
         epochMeanLoss = epochLoss / (batch_idx + 1)
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
-        print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
+        log(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
     return epochMeanLoss
 
 
@@ -57,7 +62,7 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
     point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
     point_cloud = point_cloud.transpose()
     if len(point_cloud) != 0:
-        print(point_cloud.shape)
+        log(point_cloud.shape)
         voxel = util.point_cloud2voxel(point_cloud, config.resolution)
         voxel_fp = str(Path(flags.save_dir, f"{name}_voxel_grid.jpg").resolve())
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
@@ -91,9 +96,9 @@ def test(dataloader, model, loss_fn):
                 visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
 
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
-        print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
+        log(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
 
-    print(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f}")
+    log(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f}")
 
 
 if __name__ == "__main__":
@@ -113,7 +118,7 @@ if __name__ == "__main__":
     loss_fn = nn.BCELoss()
 
     if flags.mode == "train":
-        print("Train Mode")
+        log("################# Train Mode #################")
 
         # Initialize model and load checkpoint if passed in
         model = DvhNet()
@@ -122,31 +127,35 @@ if __name__ == "__main__":
         startEpoch = 1  # inclusive
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
-            print("Loading latest checkpoint filepath:", checkpoint_path)
+            log("Loading latest checkpoint filepath:", checkpoint_path)
             model.load_state_dict(torch.load(checkpoint_path))
             startEpoch = int(checkpoint_path[checkpoint_path.rindex("_") + 1:-4]) + 1
             flags.save_dir = flags.load_ckpt_dir
         else:
             flags.save_dir = util.create_checkpoint_directory(flags.save_dir)
+        log("save_dir=", flags.save_dir)
 
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_data = nc.SafeDataset(train_data)
+        if len(train_data) == 0: sys.exit(f"ERROR: train data not found at {config.train_dir}")
+        log(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_dir)} images")
         train_dataloader = torch.utils.data.DataLoader(train_data,
                                                        batch_size=config.batch_size)
-
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         val_data = nc.SafeDataset(val_data)
+        if len(val_data) == 0: sys.exit(f"ERROR: val data not found at {config.test_dir}")
+        log(f"Created val_data DvhShapeNetDataset from {config.test_dir}: {len(val_data)} images")
         val_dataloader = torch.utils.data.DataLoader(val_data,
                                                      batch_size=config.batch_size)  # shuffle=True, num_workers=4
 
         # Train and Validate
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)  # weight_decay=1e-5
-        print(f"Training for epochs {startEpoch}-{startEpoch + flags.num_epoches - 1} ({flags.num_epoches} epoches)")
+        log(f"Training for epochs {startEpoch}-{startEpoch + flags.num_epoches - 1} ({flags.num_epoches} epoches)")
         for epoch_idx in range(startEpoch, startEpoch + flags.num_epoches):
-            print(f"-------------------------------\nEpoch {epoch_idx}")
+            log(f"-------------------------------\nEpoch {epoch_idx}")
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
-            print(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
+            log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             writer.add_scalar("Loss/train", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 50 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
@@ -156,28 +165,30 @@ if __name__ == "__main__":
 
         writer.flush()
         writer.close()
-        print("################# Done #################")
+        log("################# Done #################")
 
 
     elif flags.mode == "test":
-        print("Test Mode")
+        log("################# Test Mode #################")
         if not flags.load_ckpt_dir:
             sys.exit("ERROR: Checkpoint directory needed for test mode. Use '--load_ckpt_dir' flag")
         flags.save_dir = flags.load_ckpt_dir
-        checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
-        print("Loading latest checkpoint filepath:", checkpoint_path)
+        log("save_dir=", flags.save_dir)
+
         model = DvhNet()
         if torch.cuda.is_available():
             model.cuda()
+        checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
+        log("Loading latest checkpoint filepath:", checkpoint_path)
         model.load_state_dict(torch.load(checkpoint_path))
         model.eval()
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
         test_data = nc.SafeDataset(test_data)
+        if len(test_data) == 0: sys.exit(f"ERROR: test data not found at {config.test_dir}")
+        log(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
         test_dataloader = torch.utils.data.DataLoader(test_data,
                                                       batch_size=config.batch_size, shuffle=True)
-        if len(test_data) == 0: sys.exit(f"ERROR: test data not found at {config.test_dir}")
-        print(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
         test(test_dataloader, model, loss_fn)
 
-        print("################# Done #################")
+        log("################# Done #################")

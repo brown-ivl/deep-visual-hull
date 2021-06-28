@@ -106,7 +106,6 @@ def create_checkpoint_directory(directory_path: str) -> str:
     checkpoint_dir = os.path.join(directory_path, f'{timestamp}/')
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
-    print("save_dir=", checkpoint_dir)
     return checkpoint_dir
 
 
