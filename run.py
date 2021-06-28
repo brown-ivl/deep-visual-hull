@@ -66,9 +66,8 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
 
 
 def test(dataloader, model, loss_fn):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     """model: with loaded checkpoint or trained parameters"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     testLosses = []
     size = len(dataloader.dataset)  # number of samples = 2811
     epochLoss = 0
@@ -87,10 +86,9 @@ def test(dataloader, model, loss_fn):
         loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
         epochLoss += loss.item()
         epoch_mean_loss = epochLoss / (batch_idx + 1)
-
-        for idx, pred in enumerate(reshaped_pred):
-
-            visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
+        if batch_idx == 0 or 1:
+            for idx, pred in enumerate(reshaped_pred):
+                visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
 
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
         print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
@@ -180,7 +178,6 @@ if __name__ == "__main__":
                                                       batch_size=config.batch_size, shuffle=True)
         if len(test_data) == 0: sys.exit(f"ERROR: test data not found at {config.test_dir}")
         print(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
-        # shuffle=True, num_workers=4
         test(test_dataloader, model, loss_fn)
 
         print("################# Done #################")
