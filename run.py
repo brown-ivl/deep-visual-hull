@@ -54,7 +54,8 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
-        pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
+        with torch.no_grad:
+            pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
         try:
             reshaped_pred = pred.transpose(1, 2).reshape(
                 (config.batch_size, config.resolution, config.resolution, config.resolution))
@@ -150,12 +151,15 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             model.cuda()
         model.load_state_dict(torch.load(checkpoint_path))
+        model.eval()
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        test_data = nc.SafeDataset(test_data)
+        test_dataloader = torch.utils.data.DataLoader(test_data,
+                                                      batch_size=config.batch_size, shuffle=True)
         if len(test_data) == 0: sys.exit(f"ERROR: test data not found at {config.test_dir}")
         print(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
-        test_dataloader = torch.utils.data.DataLoader(test_data,
-                                                      batch_size=config.batch_size)  # shuffle=True, num_workers=4
+        # shuffle=True, num_workers=4
         test(test_dataloader, model, loss_fn)
 
         print("################# Done #################")
