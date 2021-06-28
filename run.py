@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
-
+from pathlib import Path
 import config
 import utils.util as util
 from data import DvhShapeNetDataset
@@ -46,6 +46,18 @@ def train_step(dataloader, model, loss_fn, optimizer):
     return epochMeanLoss
 
 
+def visualize_predictions(pred, name, point_centers, threshold=0.5):
+    indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
+    pointcloud = point_centers[indices[0], :,
+                 indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
+    if len(pointcloud) != 0:
+        voxel = util.point_cloud2voxel(pointcloud, config.resolution)
+        voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg"))
+        util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
+        binvox_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.binvox"))
+        util.save_to_binvox(voxel, config.resolution, binvox_fp)
+
+
 def test(dataloader, model, loss_fn):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -69,8 +81,8 @@ def test(dataloader, model, loss_fn):
         epochLoss += loss.item()
         epoch_mean_loss = epochLoss / (batch_idx + 1)
 
-        print(reshaped_pred.shape)
-        print(reshaped_pred)
+        for idx, pred in enumerate(reshaped_pred):
+            visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
 
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
         print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
