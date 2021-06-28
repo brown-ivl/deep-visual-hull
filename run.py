@@ -48,7 +48,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
     indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    point_cloud = np.array((point_centers[0][indices[0]], point_centers[1][indices[1]], point_centers[2][indices[2]]), dtype=float)
+    point_cloud = np.array((point_centers[0][indices[0]].numpy(), point_centers[1][indices[1]].numpy(), point_centers[2][indices[2]].numpy()), dtype=float)
     point_cloud = point_cloud.transpose()
     if len(point_cloud) != 0:
         print(point_cloud.shape)
