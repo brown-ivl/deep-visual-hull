@@ -52,6 +52,8 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     """model: with loaded checkpoint or trained parameters"""
     testLosses = []
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
+    size = len(dataloader.dataset)  # number of samples = 2811
+
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         with torch.no_grad():
@@ -67,6 +69,8 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
         pointcloud = points[indices[0], :,
                      indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
         objpointcloud += pointcloud  # array of [x,y,z] where pred > threshold
+        current = (batch_idx + 1) * len(images)  # len(images)=batch size
+
         print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
 
     objpointcloud = np.array(objpointcloud)
