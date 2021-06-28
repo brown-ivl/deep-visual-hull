@@ -48,11 +48,11 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
     indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    pointcloud = point_centers[indices[0],:,
-                 indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
-    if len(pointcloud) != 0:
-        print(pointcloud.shape)
-        voxel = util.point_cloud2voxel(pointcloud, config.resolution)
+    point_cloud = np.array(point_centers[0][indices[0]], point_centers[1][indices[1]], point_centers[2][indices[2]], dtype=float)
+    point_cloud = point_cloud.transpose()
+    if len(point_cloud) != 0:
+        print(point_cloud.shape)
+        voxel = util.point_cloud2voxel(point_cloud, config.resolution)
         voxel_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.jpg"))
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
         binvox_fp = str(Path.joinpath(flags.save_dir, f"{name}_voxel_grid.binvox"))
