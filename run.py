@@ -165,7 +165,7 @@ if __name__ == "__main__":
         print("Test Mode")
         if not flags.load_ckpt_dir:
             sys.exit("ERROR: Checkpoint directory needed for test mode. Use '--load_ckpt_dir' flag")
-
+        flags.save_dir = flags.load_ckpt_dir
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
         print("Loading latest checkpoint filepath:", checkpoint_path)
         model = DvhNet()
