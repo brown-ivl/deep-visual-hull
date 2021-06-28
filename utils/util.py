@@ -63,7 +63,7 @@ def nocs2voxel(nocs_images: List[np.ndarray], resolution: int = config.resolutio
 
 
 def draw_voxel_grid(binary_voxel_grid: List[bool], to_show: bool = False, to_disk: bool = False,
-                    fp: str = 'voxel_grid.jpg') -> ():
+                    fp: str = 'voxel_grid.jpg') -> None:
     """visualize binary_voxel_grid, output from point_cloud2voxel()"""
     ax = plt.figure().add_subplot(projection='3d')
     ax.voxels(binary_voxel_grid, edgecolor='k')
@@ -110,7 +110,7 @@ def create_checkpoint_directory(directory_path: str) -> str:
     return checkpoint_dir
 
 
-def save_to_binvox(voxel_grid: List[bool], resolution: int, save_path: str) -> ():
+def save_to_binvox(voxel_grid: List[bool], resolution: int, save_path: str) -> None:
     binvox_ds = binvox_rw.Voxels(
         data=np.array(voxel_grid, dtype=bool),
         dims=[resolution, resolution, resolution],
