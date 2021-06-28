@@ -53,6 +53,7 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     testLosses = []
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
     size = len(dataloader.dataset)  # number of samples = 2811
+    epochLoss = 0
 
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
@@ -64,13 +65,18 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
             testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
         except:
             continue
+
+        loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
+        epochLoss += loss.item()
+        epochMeanLoss = epochLoss / (batch_idx + 1)
+
         # convert prediction to point cloud, then to voxel grid
         indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
         pointcloud = points[indices[0], :,
                      indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
         objpointcloud += pointcloud  # array of [x,y,z] where pred > threshold
-        current = (batch_idx + 1) * len(images)  # len(images)=batch size
 
+        current = (batch_idx + 1) * len(images)  # len(images)=batch size
         print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
 
     objpointcloud = np.array(objpointcloud)
