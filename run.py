@@ -46,12 +46,11 @@ def train_step(dataloader, model, loss_fn, optimizer):
     return epochMeanLoss
 
 
-def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
+def test(dataloader, model, loss_fn):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     """model: with loaded checkpoint or trained parameters"""
     testLosses = []
-    objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
     size = len(dataloader.dataset)  # number of samples = 2811
     epochLoss = 0
 
@@ -68,25 +67,15 @@ def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
 
         loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
         epochLoss += loss.item()
-        epochMeanLoss = epochLoss / (batch_idx + 1)
+        epoch_mean_loss = epochLoss / (batch_idx + 1)
 
-        # convert prediction to point cloud, then to voxel grid
-        indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-        pointcloud = points[indices[0], :,
-                     indices[2]].tolist()  # QUESTION: output pred same order as input points? Result of loss function?
-        objpointcloud += pointcloud  # array of [x,y,z] where pred > threshold
+        print(reshaped_pred.shape)
+        print(reshaped_pred)
 
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
-        print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epochMeanLoss:>7f}")
+        print(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
 
-    objpointcloud = np.array(objpointcloud)
-    if len(objpointcloud) != 0:
-        voxel = util.point_cloud2voxel(objpointcloud, config.resolution)
-        voxel_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.jpg" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.jpg"
-        util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
-        binvox_fp = f"{flags.save_dir}voxel_grid_e{after_epoch}.binvox" if after_epoch else f"{flags.load_ckpt_dir}voxel_grid.binvox"
-        util.save_to_binvox(voxel, config.resolution, binvox_fp)
-    print(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f} | objpointcloud.shape={objpointcloud.shape}")
+    print(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f}")
 
 
 if __name__ == "__main__":
