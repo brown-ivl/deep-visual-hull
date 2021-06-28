@@ -47,7 +47,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
-    indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
+    indices = torch.nonzero(pred > threshold)  # tuple of 3 tensors, each the indices of 1 dimension
     print(indices)
     print(pred)
     pointcloud = point_centers[indices[0], :,
