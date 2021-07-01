@@ -54,15 +54,13 @@ def train_step(dataloader, model, loss_fn, optimizer):
 def visualize_predictions(pred, name, point_centers, threshold=0.1):
     indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
     point_centers = point_centers.cpu().numpy()
-
     valid_xs = indices[0].cpu().numpy()
     valid_yz = indices[1].cpu().numpy()
     valid_zs = indices[2].cpu().numpy()
-
     point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
     point_cloud = point_cloud.transpose()
     if len(point_cloud) != 0:
-        log(point_cloud.shape)
+        log(f"point_cloud.shape={point_cloud.shape}")
         voxel = util.point_cloud2voxel(point_cloud, config.resolution)
         voxel_fp = str(Path(flags.save_dir, f"{name}_voxel_grid.jpg").resolve())
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
@@ -127,19 +125,19 @@ if __name__ == "__main__":
         startEpoch = 1  # inclusive
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
-            log("Loading latest checkpoint filepath:", checkpoint_path)
+            log(f"Loading latest checkpoint filepath:{checkpoint_path}")
             model.load_state_dict(torch.load(checkpoint_path))
             startEpoch = int(checkpoint_path[checkpoint_path.rindex("_") + 1:-4]) + 1
             flags.save_dir = flags.load_ckpt_dir
         else:
             flags.save_dir = util.create_checkpoint_directory(flags.save_dir)
-        log("save_dir=", flags.save_dir)
+        log(f"save_dir={flags.save_dir}")
 
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_data = nc.SafeDataset(train_data)
         if len(train_data) == 0: sys.exit(f"ERROR: train data not found at {config.train_dir}")
-        log(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_dir)} images")
+        log(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_data)} images")
         train_dataloader = torch.utils.data.DataLoader(train_data,
                                                        batch_size=config.batch_size)
         val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
@@ -173,13 +171,13 @@ if __name__ == "__main__":
         if not flags.load_ckpt_dir:
             sys.exit("ERROR: Checkpoint directory needed for test mode. Use '--load_ckpt_dir' flag")
         flags.save_dir = flags.load_ckpt_dir
-        log("save_dir=", flags.save_dir)
+        log(f"save_dir={flags.save_dir}")
 
         model = DvhNet()
         if torch.cuda.is_available():
             model.cuda()
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
-        log("Loading latest checkpoint filepath:", checkpoint_path)
+        log(f"Loading latest checkpoint filepath: {checkpoint_path}")
         model.load_state_dict(torch.load(checkpoint_path))
         model.eval()
 
