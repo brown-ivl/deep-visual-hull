@@ -60,7 +60,7 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
     point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
     point_cloud = point_cloud.transpose()
     if len(point_cloud) != 0:
-        log(f"point_cloud.shape={point_cloud.shape}")
+        log(f"\t\t{name}: visualization point_cloud.shape={point_cloud.shape}")
         voxel = util.point_cloud2voxel(point_cloud, config.resolution)
         voxel_fp = str(Path(flags.save_dir, f"{name}_voxel_grid.jpg").resolve())
         util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
@@ -68,11 +68,12 @@ def visualize_predictions(pred, name, point_centers, threshold=0.1):
         util.save_to_binvox(voxel, config.resolution, binvox_fp)
 
 
-def test(dataloader, model, loss_fn):
-    """model: with loaded checkpoint or trained parameters"""
+def test(dataloader, model, loss_fn, after_epoch=None):
+    """ test or validation function for one epoch
+    model: with loaded checkpoint or trained parameters"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     testLosses = []
-    size = len(dataloader.dataset)  # number of samples = 2811
+    size = len(dataloader.dataset)
     epochLoss = 0
 
     for batch_idx, (images, points, y) in enumerate(dataloader):
@@ -81,22 +82,17 @@ def test(dataloader, model, loss_fn):
             pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
         try:
             reshaped_pred = pred.transpose(1, 2).reshape(
-                (config.batch_size, config.resolution, config.resolution, config.resolution))
+                (config.batch_size, config.resolution, config.resolution, config.resolution)) # pred points correspond to voxel centers
             testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
         except:
             continue
-
-        loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
-        epochLoss += loss.item()
-        epoch_mean_loss = epochLoss / (batch_idx + 1)
-        if batch_idx == 0 or 1:
-            for idx, pred in enumerate(reshaped_pred):
-                visualize_predictions(pred, f"{batch_idx}_{idx}", points[idx])
-
+        
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
-        log(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Train Loss = {epoch_mean_loss:>7f}")
-
-    log(f"[Test/Val] Mean Loss = {np.mean(np.asarray(testLosses)):>7f}")
+        log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Mean Test Loss = {np.mean(np.asarray(testLosses)):>7f}")
+        if batch_idx in [0, 1]:
+            for idx, pred in enumerate(reshaped_pred):# for each voxel grid prediction in batch
+                name = f"e{after_epoch}_b{batch_idx}_{idx}" if after_epoch else f"b{batch_idx}_{idx}"
+                visualize_predictions(pred, name, points[idx])
 
 
 if __name__ == "__main__":
