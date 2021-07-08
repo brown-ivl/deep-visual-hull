@@ -19,7 +19,7 @@ flags = None
 
 def log(message):
     print(message)
-    log_fp = str(Path(flags.save_dir, "log_anna.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate “..” components
+    log_fp = str(Path("/gpfs/data/ssrinath/qwei3/log_anna.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate “..” components
     with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
         file.write(f"{message}\n")
 
