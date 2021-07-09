@@ -14,7 +14,8 @@ from models.DvhNet import DvhNet
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-writer = SummaryWriter()  # output to ./runs/ directory by default.
+trainWriter = SummaryWriter(os.path.join("runs", "train"))  # default= ./runs/
+evalWriter = SummaryWriter(os.path.join("runs", "eval")) 
 flags = None
 
 def log(message):
@@ -79,7 +80,6 @@ def test(dataloader, model, loss_fn, after_epoch=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     testLosses = []
     size = len(dataloader.dataset)
-    epochLoss = 0
 
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
@@ -93,11 +93,13 @@ def test(dataloader, model, loss_fn, after_epoch=None):
             continue
         
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
+        epochMeanLoss = np.mean(np.asarray(testLosses))
         if batch_idx % 20 == 0:
-            log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Test/Val Loss = {np.mean(np.asarray(testLosses)):>7f}")
+            log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Test/Val Loss = {epochMeanLoss:>7f}")
         if batch_idx in [0, 1]:
             for idx, pred in enumerate(reshaped_pred):# for each voxel grid prediction in batch
                 visualize_predictions(pred, f"b{batch_idx}_{idx}", points[idx], after_epoch)
+    return epochMeanLoss
 
 
 if __name__ == "__main__":
@@ -109,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument('--load_ckpt_dir', type=str,
                         help="The directory to load .pth model files from. Required for test mode; used for resuming "
                              "training for train mode.")
-    parser.add_argument('--num_epoches', type=int, default=1,
+    parser.add_argument('--num_epoches', type=int, default=2,
                         help="Number of epoches to train for.")
     flags, unparsed = parser.parse_known_args()
 
@@ -159,15 +161,19 @@ if __name__ == "__main__":
             log(f"-------------------------------\nEpoch {epoch_idx}")
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
             log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
-            writer.add_scalar("Loss/train", epochMeanLoss, global_step=epoch_idx)
+            trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 20 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
-                test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
+                testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
+                evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
         torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{startEpoch + flags.num_epoches - 1}.pth')
-        test(val_dataloader, model, loss_fn, after_epoch=startEpoch + flags.num_epoches - 1)
+        testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=startEpoch + flags.num_epoches - 1)
+        evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
 
-        writer.flush()
-        writer.close()
+        trainWriter.flush()
+        trainWriter.close()
+        evalWriter.flush()
+        evalWriter.close()
         log("################# Done #################\n")
 
 
@@ -196,6 +202,6 @@ if __name__ == "__main__":
         log(f"Created test_data DvhShapeNetDataset from {config.test_dir}: {len(test_data)} images")
         test_dataloader = torch.utils.data.DataLoader(test_data,
                                                       batch_size=config.batch_size, shuffle=True)
-        test(test_dataloader, model, loss_fn)
+        testEpochMeanLoss = test(test_dataloader, model, loss_fn)
 
         log("################# Done #################\n")
