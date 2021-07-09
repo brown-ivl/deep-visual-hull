@@ -19,15 +19,14 @@ flags = None
 
 def log(message):
     print(message)
-    log_fp = str(Path("/gpfs/data/ssrinath/qwei3/log_anna.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate “..” components
+    log_fp = str(Path(flags.save_dir, "log.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate “..”
     with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
         file.write(f"{message}\n")
 
 def train_step(dataloader, model, loss_fn, optimizer):
     """train operations for one epoch"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    size = len(dataloader.dataset)  # number of samples = 2811
+    size = len(dataloader.dataset)
     epochLoss = 0
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)
@@ -163,9 +162,9 @@ if __name__ == "__main__":
             writer.add_scalar("Loss/train", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 20 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
-                # test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
+                test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
         torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{startEpoch + flags.num_epoches - 1}.pth')
-        # test(val_dataloader, model, loss_fn, after_epoch=startEpoch + flags.num_epoches - 1)
+        test(val_dataloader, model, loss_fn, after_epoch=startEpoch + flags.num_epoches - 1)
 
         writer.flush()
         writer.close()
