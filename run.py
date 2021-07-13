@@ -25,8 +25,30 @@ from dvhNet import dvhNet
 writer = SummaryWriter()
 flags = None
 
+def print_progress_bar(iteration, total, epoch, total_epochs, loss, decimals=1, length=50, fill='=', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        epoch       - Required  : current epoch string (Int)
+        total_epochs- Required  : total number of epochs (Int)
+        loss        - Required  : loss (Tensor)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '>' + '-' * (length - filledLength)
+    print(f'\rEpoch {str(epoch + 1)}/{str(total_epochs)}: |{bar}| {percent}% Complete, Loss: {str(loss.item())}',
+          end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
-def train_step(dataloader, model, loss_fn, optimizer):
+def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
     '''train operations for one epoch'''
     # size = len(dataloader.dataset) # number of samples
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -45,7 +67,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
         optimizer.step()
 
         loss, current = loss.item(), batch_idx * len(images)  # (batch size)
-        print(f"Batch {batch_idx} loss: {loss:>7f}")  # [{current:>5d}/{size:>5d}]
+        print_progress_bar(batch_idx, len(dataloader), epoch, total_epochs, loss)
 
     return loss
 
@@ -122,7 +144,7 @@ if __name__ == "__main__":
         epochs = 200
         for epoch_idx in range(oldepoch, oldepoch + epochs):
             print(f"-------------------------------\nEpoch {epoch_idx + 1}")
-            loss = train_step(train_dataloader, model, loss_fn, optimizer)
+            loss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx,  oldepoch + epochs)
             writer.add_scalar("Loss/train", loss, global_step=epoch_idx)
             if epoch_idx % 100 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx + 1}.pth')
