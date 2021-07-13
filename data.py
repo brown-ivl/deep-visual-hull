@@ -41,13 +41,13 @@ NOCS_MAP_FILE_PATH_PATTERN = "*NOX*"
 
 
 class DvhShapeNetDataset(torch.utils.data.Dataset):
-    def __init__(self, dir_path, resolution, amount_of_data=1.0, overfitting=False):
+    def __init__(self, dir_path, resolution, amount_of_data=1.0, single_object=False):
         self.amount_of_data = amount_of_data
         self.voxel_centers = calculate_voxel_centers(resolution)
         self.resolution = resolution
         self.object_id_2_voxel_grid = dict()
 
-        self.image_paths = glob.glob(f"{dir_path}/{COLOR_IMAGE_FILE_PATH_PATTERN}") if overfitting is True \
+        self.image_paths = glob.glob(f"{dir_path}/{COLOR_IMAGE_FILE_PATH_PATTERN}") if single_object is True \
             else glob.glob(f"{dir_path}/*/{COLOR_IMAGE_FILE_PATH_PATTERN}")
 
     def __len__(self):
