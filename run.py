@@ -122,7 +122,7 @@ if __name__ == "__main__":
     if flags.mode == "train":
         print("TRAIN mode")
 
-        training_data = nc.SafeDataset(DvhShapeNetDataset(config.train_dir, config.resolution, single_object=True))
+        training_data = nc.SafeDataset(DvhShapeNetDataset(config.train_dir, config.resolution))
         train_dataloader = torch.utils.data.DataLoader(training_data,
                                                        batch_size=config.batch_size)  # shuffle=True, num_workers=4
         model = dvhNet()
