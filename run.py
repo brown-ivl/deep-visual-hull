@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import nonechucks as nc
 from torch.utils.tensorboard import SummaryWriter
-
+import pathlib
 import numpy as np
 
 import config
@@ -106,8 +106,8 @@ if __name__ == "__main__":
         model = dvhNet()
         # summary(model, [(1,3,224,224), (1, 3, 4)])
 
-        flags.save_dir += f'{timestamp}/' if flags.save_dir.endswith("/") else f'{timestamp}/'
-        if os.path.exists(flags.save_dir) == False:
+        flags.save_dir = str(pathlib.Path(flags.save_dir)/f'{timestamp}')
+        if not os.path.exists(flags.save_dir):
             os.makedirs(flags.save_dir)
         print("save_dir=", flags.save_dir)
         oldepoch = 0
