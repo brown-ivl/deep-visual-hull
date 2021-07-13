@@ -11,7 +11,7 @@ import binvox_rw
 import config
 
 
-def get_image(self, path):
+def get_image(path):
     '''takes an image path and returns a tensor of the shape 3 (num channels) x 224 x 224'''
     image = cv2.imread(path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
