@@ -6,3 +6,4 @@ opencv-python
 matplotlib
 git+https://github.com/drsrinathsridhar/tk3dv.git
 pyntcloud
+nonechucks
