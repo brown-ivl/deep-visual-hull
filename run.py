@@ -148,9 +148,9 @@ if __name__ == "__main__":
             loss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx,  oldepoch + epochs)
             writer.add_scalar("Loss/train", loss, global_step=epoch_idx)
             if epoch_idx % 100 == 0:
-                torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx + 1}.pth')
+                torch.save(model.state_dict(), str(pathlib.Path(flags.save_dir)/f'dvhNet_weights_{epoch_idx + 1}.pth'))
                 # test(train_dataloader, model, loss_fn, after_epoch=epoch_idx + 1)
-        torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{oldepoch + epochs}.pth')
+        torch.save(model.state_dict(), str(pathlib.Path(flags.save_dir) / f'dvhNet_weights_{epoch_idx + 1}.pth'))
         # test(train_dataloader, model, loss_fn, after_epoch=oldepoch + epochs)
 
         writer.flush()
