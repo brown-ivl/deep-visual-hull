@@ -42,7 +42,7 @@ def print_progress_bar(iteration, total, epoch, total_epochs, loss, decimals=1, 
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '>' + '-' * (length - filledLength)
-    print(f'\rEpoch {str(epoch + 1)}/{str(total_epochs)}: |{bar}| {percent}% Complete, Loss: {str(loss.item())}',
+    print(f'\rEpoch {str(epoch + 1)}/{str(total_epochs)}: |{bar}| {percent}% Complete, Loss: {str(loss)}',
           end=printEnd)
     # Print New Line on Complete
     if iteration == total:
