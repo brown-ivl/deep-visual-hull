@@ -114,7 +114,7 @@ if __name__ == "__main__":
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate) # weight_decay=1e-5
 
-        epochs = 5
+        epochs = 200
         for epoch_idx in range(oldepoch, oldepoch+epochs):
             print(f"-------------------------------\nEpoch {epoch_idx+1}")
             loss = train_step(train_dataloader, model, loss_fn, optimizer)
