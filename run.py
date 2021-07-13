@@ -44,9 +44,8 @@ def train_step(dataloader, model, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
 
-        if batch_idx % 100 == 0:
-            loss, current = loss.item(), batch_idx * len(images)  # (batch size)
-            print(f"Train loss: {loss:>7f}")  # [{current:>5d}/{size:>5d}]
+        loss, current = loss.item(), batch_idx * len(images)  # (batch size)
+        print(f"Batch {batch_idx} loss: {loss:>7f}")  # [{current:>5d}/{size:>5d}]
 
     return loss
 
