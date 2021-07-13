@@ -127,9 +127,9 @@ if __name__ == "__main__":
             writer.add_scalar("Loss/train", loss, global_step=epoch_idx)
             if epoch_idx % 100 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx + 1}.pth')
-                test(train_dataloader, model, loss_fn, after_epoch=epoch_idx + 1)
+                # test(train_dataloader, model, loss_fn, after_epoch=epoch_idx + 1)
         torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{oldepoch + epochs}.pth')
-        test(train_dataloader, model, loss_fn, after_epoch=oldepoch + epochs)
+        # test(train_dataloader, model, loss_fn, after_epoch=oldepoch + epochs)
 
         writer.flush()
         writer.close()
