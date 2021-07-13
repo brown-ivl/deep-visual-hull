@@ -10,6 +10,16 @@ import os, sys
 import binvox_rw
 import config
 
+
+def get_image(self, path):
+    '''takes an image path and returns a tensor of the shape 3 (num channels) x 224 x 224'''
+    image = cv2.imread(path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, (224, 224))
+    image = torch.tensor(image)
+    image = image.permute(2, 0, 1)
+    return image
+
 def get_grid_uniform(resolution):
     x = np.linspace(0, 1, resolution)
     y = x
@@ -44,6 +54,11 @@ def get_mesh(decoder, latent_c, resolution, mc_value):
     verts = verts + np.array([grid['xyz'][0][0],grid['xyz'][1][0],grid['xyz'][2][0]])
     meshexport = trimesh.Trimesh(verts, faces, normals, vertex_colors=values)
     return {"mesh_export": meshexport}
+
+def img_path2numpy(path: str) -> np.ndarray:
+    image = cv2.imread(path)[:, :, :3]
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return image
 
 def calculate_voxel_centers(resolution, min=0, max=1):
     '''returns an array of (x,y,z) coordinates in min-max representing centers of voxel cells

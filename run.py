@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 import config
-from data import CustomImageDataset
+from data import DvhShapeNetDataset
 import util
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     if flags.mode == "train":
         print("TRAIN mode")
 
-        training_data = CustomImageDataset(config.instance_dir, config.resolution)
+        training_data = DvhShapeNetDataset(config.instance_dir, config.resolution, overfitting=True)
         train_dataloader = torch.utils.data.DataLoader(training_data,
                                                        batch_size=config.batch_size)  # shuffle=True, num_workers=4
         model = dvhNet()
@@ -148,7 +148,7 @@ if __name__ == "__main__":
         print("load_ckpt_dir's latest checkpoint filepath:", ckpt_fp)
         model = dvhNet()
         model.load_state_dict(torch.load(ckpt_fp))
-        test_data = CustomImageDataset(config.instance_dir, config.resolution)
+        test_data = DvhShapeNetDataset(config.instance_dir, config.resolution, overfitting=True)
         test_dataloader = torch.utils.data.DataLoader(test_data,
                                                       batch_size=config.batch_size)  # shuffle=True, num_workers=4
         loss_fn = nn.BCELoss()
