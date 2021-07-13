@@ -29,8 +29,8 @@ flags = None
 def train_step(dataloader, model, loss_fn, optimizer):
     '''train operations for one epoch'''
     # size = len(dataloader.dataset) # number of samples
-    device = torch.cuda.device(0) if torch.cuda.is_available() else 'cpu'
-    model = model.to(device)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model.to(device)
 
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)
@@ -53,8 +53,8 @@ def train_step(dataloader, model, loss_fn, optimizer):
 
 def test(dataloader, model, loss_fn, threshold=0.5, after_epoch=None):
     '''model: with loaded checkpoint or trained parameters'''
-    device = torch.cuda.device(0) if torch.cuda.is_available() else 'cpu'
-    model = model.to(device)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model.to(device)
 
     testLosses = []
     objpointcloud = []  # append points from each image-occupancy pair together for one visualization per object
