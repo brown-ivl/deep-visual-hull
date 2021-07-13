@@ -116,12 +116,13 @@ if __name__ == "__main__":
                         help="The directory to store the .pth model files and val/test visualization images.")
     parser.add_argument('--load_ckpt_dir', type=str,
                         help="The directory to load .pth model files from. Required for test mode; used for resuming training for train mode")
+    parser.add_argument('--num_epochs', type=int)
     flags, unparsed = parser.parse_known_args()
 
     if flags.mode == "train":
         print("TRAIN mode")
 
-        training_data = nc.SafeDataset(DvhShapeNetDataset(config.train_dir, config.resolution, amount_of_data=0.05))
+        training_data = nc.SafeDataset(DvhShapeNetDataset(config.train_dir, config.resolution, single_object=True))
         train_dataloader = torch.utils.data.DataLoader(training_data,
                                                        batch_size=config.batch_size)  # shuffle=True, num_workers=4
         model = dvhNet()
@@ -141,7 +142,7 @@ if __name__ == "__main__":
         loss_fn = nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=config.learning_rate)  # weight_decay=1e-5
 
-        epochs = 200
+        epochs = flags.num_epochs
         for epoch_idx in range(oldepoch, oldepoch + epochs):
             print(f"-------------------------------\nEpoch {epoch_idx + 1}")
             loss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx,  oldepoch + epochs)
