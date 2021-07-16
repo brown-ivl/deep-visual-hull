@@ -11,6 +11,9 @@ import config
 import utils.util as util
 from data import DvhShapeNetDataset
 from models.DvhNet import DvhNet
+import wget
+from torchinfo import summary
+
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -20,7 +23,7 @@ flags = None
 
 def log(message):
     print(message)
-    log_fp = str(Path(flags.save_dir, "log.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate “..”
+    log_fp = str(Path(flags.save_dir, "log.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate ".."
     with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
         file.write(f"{message}\n")
 
@@ -35,7 +38,7 @@ def train_step(dataloader, model, loss_fn, optimizer):
         reshaped_pred = pred.transpose(1, 2)  # (batch_size, T=8, 1)
         try:
             reshaped_pred = reshaped_pred.reshape(
-                (config.batch_size, config.resolution, config.resolution, config.resolution))
+                (-1, config.resolution, config.resolution, config.resolution))
         except:
             continue
         loss = loss_fn(reshaped_pred.float(), y.float())  # compute prediction error
@@ -52,27 +55,42 @@ def train_step(dataloader, model, loss_fn, optimizer):
     return epochMeanLoss
 
 
-def visualize_predictions(pred, name, point_centers, after_epoch, threshold=config.visualize_threshold):
-    indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    point_centers = point_centers.cpu().numpy()
-    valid_xs = indices[0].cpu().numpy()
-    valid_yz = indices[1].cpu().numpy()
-    valid_zs = indices[2].cpu().numpy()
-    point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
-    point_cloud = point_cloud.transpose()
-    if len(point_cloud) != 0:
-        save_dir = flags.save_dir
-        if after_epoch:
-            save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
-            if os.path.exists(save_dir) == False:
-                    os.makedirs(save_dir)
-        log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={point_cloud.shape}")
-        voxel = util.point_cloud2voxel(point_cloud, config.resolution)
-        voxel_fp = str(Path(save_dir, f"{name}_voxel_grid.jpg").resolve())
-        util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
-        binvox_fp = str(Path(save_dir, f"{name}_voxel_grid.binvox").resolve())
-        util.save_to_binvox(voxel, config.resolution, binvox_fp)
-
+def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5):
+    # indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
+    # point_centers = point_centers.cpu().numpy()
+    # valid_xs = indices[0].cpu().numpy()
+    # valid_yz = indices[1].cpu().numpy()
+    # valid_zs = indices[2].cpu().numpy()
+    # point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
+    # point_cloud = point_cloud.transpose()
+    # if len(point_cloud) != 0:
+    #     save_dir = flags.save_dir
+    #     if after_epoch:
+    #         save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
+    #         if os.path.exists(save_dir) == False:
+    #                 os.makedirs(save_dir)
+    #     log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={point_cloud.shape}")
+    #     voxel = util.point_cloud2voxel(point_cloud, config.resolution)
+    #     voxel_fp = str(Path(save_dir, f"{name}_voxel_grid.jpg").resolve())
+    #     util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
+    #     binvox_fp = str(Path(save_dir, f"{name}_voxel_grid.binvox").resolve())
+    #     util.save_to_binvox(voxel, config.resolution, binvox_fp)
+    
+    ones = torch.ones(pred.shape)
+    zeros = torch.zeros(pred.shape)
+    
+    save_dir = flags.save_dir
+    if after_epoch:
+        save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
+        if os.path.exists(save_dir) == False:
+                os.makedirs(save_dir)
+    log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={pred.shape}")
+    voxel = torch.where(pred.cpu()>=threshold,ones,zeros)
+    voxel_fp = str(Path(save_dir, f"{name}_voxel_grid.jpg").resolve())
+    util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
+    binvox_fp = str(Path(save_dir, f"{name}_voxel_grid.binvox").resolve())
+    util.save_to_binvox(voxel, config.resolution, binvox_fp)
+    
 
 def test(dataloader, model, loss_fn, after_epoch=None):
     """ test or validation function for one epoch
@@ -87,7 +105,7 @@ def test(dataloader, model, loss_fn, after_epoch=None):
             pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
         try:
             reshaped_pred = pred.transpose(1, 2).reshape(
-                (config.batch_size, config.resolution, config.resolution, config.resolution)) # pred points correspond to voxel centers
+                (-1, config.resolution, config.resolution, config.resolution)) # pred points correspond to voxel centers
             testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
         except:
             continue
@@ -106,26 +124,48 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, default="train",
                         help="One of 'train' or 'test'.")
-    parser.add_argument('--save_dir', type=str, default=config.save_dir,
+    parser.add_argument('--save_dir', type=str, default='/save',
                         help="The directory to store the .pth model files and val/test visualization images.")
     parser.add_argument('--load_ckpt_dir', type=str,
                         help="The directory to load .pth model files from. Required for test mode; used for resuming "
                              "training for train mode.")
     parser.add_argument('--num_epoches', type=int, default=2,
                         help="Number of epoches to train for.")
+    parser.add_argument('--load_vgg', type=str, nargs='?', const='vgg16_bn-6c64b313.pth',
+                        help="Path to pre-trained VGG-16 file.")
     flags, unparsed = parser.parse_known_args()
 
     # Settings shared across train and test
     loss_fn = nn.BCELoss()
-
+    model = DvhNet()
     if flags.mode == "train":
         log("\n################# Train Mode #################")
 
         # Initialize model and load checkpoint if passed in
-        model = DvhNet()
+        
         if torch.cuda.is_available():
             model.cuda()
         startEpoch = 1  # inclusive
+        if flags.load_vgg:
+            
+            flags.load_vgg = os.path.abspath(flags.load_vgg)
+            if not os.path.exists(flags.load_vgg) and not os.path.exists('vgg16_bn-6c64b313.pth'):
+                wget.download(
+                    "https://download.pytorch.org/models/vgg16_bn-6c64b313.pth")
+                flags.load_vgg = os.path.abspath('vgg16_bn-6c64b313.pth')
+
+            log(f"Loading pre-trained VGG-16 file:{flags.load_vgg}")
+            
+            if torch.cuda.is_available():
+                model.encoder.load_state_dict(torch.load(flags.load_vgg), strict=False)
+            else:
+                model.encoder.load_state_dict(torch.load(flags.load_vgg,map_location=torch.device('cpu')),strict=False)
+            
+            for param in model.encoder.parameters():
+                param.requires_grad = False
+            
+            flags.save_dir = util.create_checkpoint_directory(flags.save_dir)
+        
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
             log(f"Loading latest checkpoint filepath:{checkpoint_path}")
@@ -140,6 +180,7 @@ if __name__ == "__main__":
         log(f"save_dir={flags.save_dir}")
         log(f"config.visualize_threshold={config.visualize_threshold}")
 
+        # summary(model, [(1, 3, 224, 224), (1, 3, 4)])
         # Set up data
         train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
         train_data = nc.SafeDataset(train_data)
@@ -162,7 +203,7 @@ if __name__ == "__main__":
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
             log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
-            if epoch_idx % 20 == 0:
+            if epoch_idx % 1 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
                 testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
                 evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
@@ -185,7 +226,7 @@ if __name__ == "__main__":
         log(f"save_dir={flags.save_dir}")
         log(f"config.visualize_threshold={config.visualize_threshold}")
 
-        model = DvhNet()
+        
         if torch.cuda.is_available():
             model.cuda()
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
