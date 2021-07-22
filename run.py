@@ -227,7 +227,7 @@ if __name__ == "__main__":
         log(f"Training for epochs {startEpoch}-{startEpoch + flags.num_epoches - 1} ({flags.num_epoches} epoches)")
         for epoch_idx in range(startEpoch, startEpoch + flags.num_epoches):
             log(f"-------------------------------\nEpoch {epoch_idx}")
-            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
+            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches)
             log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 1 == 0:
