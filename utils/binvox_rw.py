@@ -293,3 +293,9 @@ def write(voxel_model, fp):
     # flush out remainders
     if ctr > 0:
         write_pair(fp, state, ctr)
+
+
+if __name__ == '__main__':
+    import doctest
+
+    doctest.testmod()

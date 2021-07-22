@@ -10,5 +10,6 @@ module load cuda
 source /gpfs/runtime/opt/anaconda/2020.02/etc/profile.d/conda.sh
 conda activate deep-visual-hull
 # cd /gpfs/data/ssrinath/qwei3/deep-visual-hull/
-python run.py --num_epochs 500 --save_dir checkpoints --mode train
+python run.py --load_ckpt_dir /gpfs/data/ssrinath/anatara7/deep-visual-hull/checkpoints/1624836375/ --num_epoches 200 --save_dir /gpfs/data/ssrinath/anatara7/deep-visual-hull/checkpoints/
+
 

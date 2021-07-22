@@ -1,5 +1,12 @@
 # Data
-shapenetplain_v1
+shapenetplain_v1/
+saved/
+data/
+runs/
+.vscode/
+
+
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -132,7 +139,6 @@ dmypy.json
 .pyre/
 
 .idea/
-
 data/
 runs/
 checkpoints/
