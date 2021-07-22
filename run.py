@@ -209,13 +209,13 @@ if __name__ == "__main__":
 
         # summary(model, [(1, 3, 224, 224), (1, 3, 4)])
         # Set up data
-        train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
+        train_data = DvhShapeNetDataset(config.train_dir, config.resolution, single_object=config.is_single_instance)
         train_data = nc.SafeDataset(train_data)
         if len(train_data) == 0: sys.exit(f"ERROR: train data not found at {config.train_dir}")
         log(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_data)} images")
         train_dataloader = torch.utils.data.DataLoader(train_data,
                                                        batch_size=config.batch_size)
-        val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        val_data = DvhShapeNetDataset(config.test_dir, config.resolution,  single_object=config.is_single_instance)
         val_data = nc.SafeDataset(val_data)
         if len(val_data) == 0: sys.exit(f"ERROR: val data not found at {config.test_dir}")
         log(f"Created val_data DvhShapeNetDataset from {config.test_dir}: {len(val_data)} images")
@@ -230,7 +230,7 @@ if __name__ == "__main__":
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches)
             log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
-            if epoch_idx % 1 == 0:
+            if epoch_idx % 100 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
                 testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
                 evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
