@@ -1,7 +1,7 @@
 import pathlib
 import torch
 import glob
-from util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
+from utils.util import get_image, nocs2voxel, calculate_voxel_centers, img_path2numpy
 
 COLOR_IMAGE_FILE_PATH_PATTERN = "*Color_00*"
 NOCS_MAP_FILE_PATH_PATTERN = "*NOX*"
