@@ -77,7 +77,7 @@ def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
         epochMeanLoss = epochLoss / (batch_idx + 1)
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
         loss, current = loss.item(), batch_idx * len(images)  # (batch size)
-        print_progress_bar(batch_idx, len(dataloader), epoch, total_epochs, loss)
+        print_progress_bar(batch_idx, len(size), epoch, total_epochs, loss)
 
     return epochMeanLoss
 
@@ -228,7 +228,6 @@ if __name__ == "__main__":
         for epoch_idx in range(startEpoch, startEpoch + flags.num_epoches):
             log(f"-------------------------------\nEpoch {epoch_idx}")
             epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches)
-            log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
             if epoch_idx % 100 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
