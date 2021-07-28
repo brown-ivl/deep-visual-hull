@@ -18,7 +18,6 @@ from models.DvhNet import DvhNet
 import wget
 from torchinfo import summary
 
-
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 trainWriter = SummaryWriter(os.path.join("runs", "train"))  # default= ./runs/
@@ -83,26 +82,7 @@ def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
 
 
 def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5):
-    # indices = torch.nonzero(pred > threshold, as_tuple=True)  # tuple of 3 tensors, each the indices of 1 dimension
-    # point_centers = point_centers.cpu().numpy()
-    # valid_xs = indices[0].cpu().numpy()
-    # valid_yz = indices[1].cpu().numpy()
-    # valid_zs = indices[2].cpu().numpy()
-    # point_cloud = np.array((point_centers[0][valid_xs], point_centers[1][valid_yz], point_centers[2][valid_zs]), dtype=float)
-    # point_cloud = point_cloud.transpose()
-    # if len(point_cloud) != 0:
-    #     save_dir = flags.save_dir
-    #     if after_epoch:
-    #         save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
-    #         if os.path.exists(save_dir) == False:
-    #                 os.makedirs(save_dir)
-    #     log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={point_cloud.shape}")
-    #     voxel = util.point_cloud2voxel(point_cloud, config.resolution)
-    #     voxel_fp = str(Path(save_dir, f"{name}_voxel_grid.jpg").resolve())
-    #     util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
-    #     binvox_fp = str(Path(save_dir, f"{name}_voxel_grid.binvox").resolve())
-    #     util.save_to_binvox(voxel, config.resolution, binvox_fp)
-
+    """Visualize predictions and save binvox files"""
     ones = torch.ones(pred.shape)
     zeros = torch.zeros(pred.shape)
 
@@ -125,7 +105,7 @@ def test(dataloader, model, loss_fn, after_epoch=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     testLosses = []
     size = len(dataloader.dataset)
-
+    IoU_table = {}
     for batch_idx, (images, points, y) in enumerate(dataloader):
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         with torch.no_grad():
@@ -137,13 +117,25 @@ def test(dataloader, model, loss_fn, after_epoch=None):
         except:
             continue
 
-        current = (batch_idx + 1) * len(images)  # len(images)=batch size
+        # current = (batch_idx + 1) * len(images)  # len(images)=batch size
         epochMeanLoss = np.mean(np.asarray(testLosses))
-        if batch_idx % 20 == 0:
-            log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Test/Val Loss = {epochMeanLoss:>7f}")
-        if batch_idx in [0, 1]:
-            for idx, pred in enumerate(reshaped_pred):# for each voxel grid prediction in batch
-                visualize_predictions(pred, f"b{batch_idx}_{idx}", points[idx], after_epoch)
+        # if batch_idx % 20 == 0:
+        #     log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Test/Val Loss = {epochMeanLoss:>7f}")
+        # if batch_idx in [0, 1]:
+        #     for idx, pred in enumerate(reshaped_pred):# for each voxel grid prediction in batch
+        #         visualize_predictions(pred, f"b{batch_idx}_{idx}", points[idx], after_epoch)
+
+        for pred, yy in zip(reshaped_pred, y):
+            IoU = util.cal_IoU(pred, yy)
+            IoU_table[(pred, yy)] = IoU
+        log(batch_idx)
+        
+    IoU_table = sorted(IoU_table.items(), key =lambda x:x[1], reverse=True)
+    for i in range(0,size,100):
+        log(IoU_table[i][1])
+        visualize_predictions(IoU_table[i][0][0], f"top{i+1}_pred", points[0], after_epoch)
+        visualize_predictions(IoU_table[i][0][1], f"top{i+1}_ground_truth", points[0], after_epoch)
+    
     return epochMeanLoss
 
 
@@ -260,7 +252,7 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             model.load_state_dict(torch.load(checkpoint_path))
         else:
-            model.load_state_dict(torch.load(checkpoint_path),map_location=torch.device('cpu'))
+            model.load_state_dict(torch.load(checkpoint_path))
         model.eval()
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
