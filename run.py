@@ -1,3 +1,7 @@
+#!python3
+
+
+import os, sys
 import argparse
 import os
 import sys
@@ -17,7 +21,7 @@ from torchinfo import summary
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 trainWriter = SummaryWriter(os.path.join("runs", "train"))  # default= ./runs/
-evalWriter = SummaryWriter(os.path.join("runs", "eval")) 
+evalWriter = SummaryWriter(os.path.join("runs", "eval"))
 flags = None
 
 def log(message):
@@ -25,8 +29,30 @@ def log(message):
     log_fp = str(Path(flags.save_dir, "log.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate ".."
     with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
         file.write(f"{message}\n")
+def print_progress_bar(iteration, total, epoch, total_epochs, loss, decimals=1, length=50, fill='=', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        epoch       - Required  : current epoch string (Int)
+        total_epochs- Required  : total number of epochs (Int)
+        loss        - Required  : loss (Tensor)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '>' + '-' * (length - filledLength)
+    print(f'\rEpoch {str(epoch + 1)}/{str(total_epochs)}: |{bar}| {percent}% Complete, Loss: {str(loss)}',
+          end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
-def train_step(dataloader, model, loss_fn, optimizer):
+def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
     """train operations for one epoch"""
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     size = len(dataloader.dataset)
@@ -49,8 +75,9 @@ def train_step(dataloader, model, loss_fn, optimizer):
         epochLoss += loss.item()
         epochMeanLoss = epochLoss / (batch_idx + 1)
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
-        if batch_idx % 20 == 0:
-            log(f"\tBatch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Train Loss = {epochMeanLoss:>7f}")
+        loss, current = loss.item(), batch_idx * len(images)  # (batch size)
+        print_progress_bar(batch_idx, len(size), epoch, total_epochs, loss)
+
     return epochMeanLoss
 
 
@@ -58,7 +85,7 @@ def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5)
     """Visualize predictions and save binvox files"""
     ones = torch.ones(pred.shape)
     zeros = torch.zeros(pred.shape)
-    
+
     save_dir = flags.save_dir
     if after_epoch:
         save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
@@ -70,7 +97,7 @@ def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5)
     util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
     binvox_fp = str(Path(save_dir, f"{name}_voxel_grid.binvox").resolve())
     util.save_to_binvox(voxel, config.resolution, binvox_fp)
-    
+
 
 def test(dataloader, model, loss_fn, after_epoch=None):
     """ test or validation function for one epoch
@@ -89,7 +116,7 @@ def test(dataloader, model, loss_fn, after_epoch=None):
             testLosses.append(loss_fn(reshaped_pred.float(), y.float()).item())
         except:
             continue
-        
+
         # current = (batch_idx + 1) * len(images)  # len(images)=batch size
         epochMeanLoss = np.mean(np.asarray(testLosses))
         # if batch_idx % 20 == 0:
@@ -134,12 +161,12 @@ if __name__ == "__main__":
         log("\n################# Train Mode #################")
 
         # Initialize model and load checkpoint if passed in
-        
+
         if torch.cuda.is_available():
             model.cuda()
         startEpoch = 1  # inclusive
         if flags.load_vgg:
-            
+
             flags.load_vgg = os.path.abspath(flags.load_vgg)
             if not os.path.exists(flags.load_vgg) and not os.path.exists('vgg16_bn-6c64b313.pth'):
                 wget.download(
@@ -147,17 +174,17 @@ if __name__ == "__main__":
                 flags.load_vgg = os.path.abspath('vgg16_bn-6c64b313.pth')
 
             log(f"Loading pre-trained VGG-16 file:{flags.load_vgg}")
-            
+
             if torch.cuda.is_available():
                 model.encoder.load_state_dict(torch.load(flags.load_vgg), strict=False)
             else:
                 model.encoder.load_state_dict(torch.load(flags.load_vgg,map_location=torch.device('cpu')),strict=False)
-            
+
             for param in model.encoder.parameters():
                 param.requires_grad = False
-            
+
             flags.save_dir = util.create_checkpoint_directory(flags.save_dir)
-        
+
         if flags.load_ckpt_dir:
             checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
             log(f"Loading latest checkpoint filepath:{checkpoint_path}")
@@ -174,13 +201,13 @@ if __name__ == "__main__":
 
         # summary(model, [(1, 3, 224, 224), (1, 3, 4)])
         # Set up data
-        train_data = DvhShapeNetDataset(config.train_dir, config.resolution)
+        train_data = DvhShapeNetDataset(config.train_dir, config.resolution, single_object=config.is_single_instance)
         train_data = nc.SafeDataset(train_data)
         if len(train_data) == 0: sys.exit(f"ERROR: train data not found at {config.train_dir}")
         log(f"Created train_data DvhShapeNetDataset from {config.train_dir}: {len(train_data)} images")
         train_dataloader = torch.utils.data.DataLoader(train_data,
                                                        batch_size=config.batch_size)
-        val_data = DvhShapeNetDataset(config.test_dir, config.resolution)
+        val_data = DvhShapeNetDataset(config.test_dir, config.resolution,  single_object=config.is_single_instance)
         val_data = nc.SafeDataset(val_data)
         if len(val_data) == 0: sys.exit(f"ERROR: val data not found at {config.test_dir}")
         log(f"Created val_data DvhShapeNetDataset from {config.test_dir}: {len(val_data)} images")
@@ -192,10 +219,9 @@ if __name__ == "__main__":
         log(f"Training for epochs {startEpoch}-{startEpoch + flags.num_epoches - 1} ({flags.num_epoches} epoches)")
         for epoch_idx in range(startEpoch, startEpoch + flags.num_epoches):
             log(f"-------------------------------\nEpoch {epoch_idx}")
-            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer)
-            log(f"Epoch Mean Train Loss={epochMeanLoss:>7f}")
+            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches)
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
-            if epoch_idx % 1 == 0:
+            if epoch_idx % 100 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
                 testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
                 evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
@@ -218,7 +244,7 @@ if __name__ == "__main__":
         log(f"save_dir={flags.save_dir}")
         log(f"config.visualize_threshold={config.visualize_threshold}")
 
-        
+
         if torch.cuda.is_available():
             model.cuda()
         checkpoint_path = util.get_checkpoint_fp(flags.load_ckpt_dir)
