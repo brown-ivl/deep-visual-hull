@@ -126,6 +126,16 @@ def read_binvox(binvox_fp: str) -> np.ndarray:
         voxels = binvox_rw.read_as_3d_array(f)
     return voxels.data.astype(float)
 
+def cal_IoU(pred, y):
+    """Calculate IoU of the inputs"""
+    indices_pred = set(tuple(t.tolist()) for t in torch.nonzero(pred > 0.5))
+    indices_y = set(tuple(t.tolist()) for t in torch.nonzero(y > 0.5))
+    intersection = indices_pred.intersection(indices_y)
+    union = indices_pred.union(indices_y)
+    IoU = len(intersection) / len(union)
+
+    return IoU
+    
 # if __name__ == "__main__":
 # For more than 1 object instance: read nocs maps
 # nocs_paths = []
