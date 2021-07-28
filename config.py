@@ -10,5 +10,6 @@ visualize_threshold = 0.1
 # train_dir = '/Users/annawei/Tech/IVL/shapenetplain_v1/train/test'
 # test_dir = '/Users/annawei/Tech/IVL/shapenetplain_v1/train/test'
 # # On CCV
-train_dir = '/gpfs/data/ssrinath/shapenetplain_v1/train/02958343'
-test_dir = '/gpfs/data/ssrinath/shapenetplain_v1/val/02958343'
+train_dir = '/gpfs/data/ssrinath/shapenetplain_v1/train/02958343/6c6254a92c485787f1ca7626ddabf47'
+test_dir = '/gpfs/data/ssrinath/shapenetplain_v1/train/02958343/6c6254a92c485787f1ca7626ddabf47'
+is_single_instance = True
