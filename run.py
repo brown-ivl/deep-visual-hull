@@ -17,6 +17,7 @@ from data import DvhShapeNetDataset
 from models.DvhNet import DvhNet
 import wget
 from torchinfo import summary
+import time
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -29,35 +30,50 @@ def log(message):
     log_fp = str(Path(flags.save_dir, "log.txt").resolve()) # Path.resolve(): resolve symlinks and eliminate ".."
     with open(log_fp, "a") as file: # a: file created if not exist, append not overwrite
         file.write(f"{message}\n")
-def print_progress_bar(iteration, total, epoch, total_epochs, loss, decimals=1, length=50, fill='=', printEnd="\r"):
+def print_progress_bar(iteration, total, loss, timer=0, batch_timer=0, decimals=1, length=50, fill='=', printEnd="\r", training=True):
     """
     Call in a loop to create terminal progress bar
     @params:
         iteration   - Required  : current iteration (Int)
         total       - Required  : total iterations (Int)
-        epoch       - Required  : current epoch string (Int)
-        total_epochs- Required  : total number of epochs (Int)
-        loss        - Required  : loss (Tensor)
+        loss        - Required  : loss (Int)
+        timer       - Optional  : timer (Float)
+        batch_timer - Optional  : step timer (Float)
         decimals    - Optional  : positive number of decimals in percent complete (Int)
         length      - Optional  : character length of bar (Int)
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+        training    - Optional  : training or testing
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '>' + '-' * (length - filledLength)
-    print(f'\rEpoch {str(epoch + 1)}/{str(total_epochs)}: |{bar}| {percent}% Complete, Loss: {str(loss)}',
-          end=printEnd)
-    # Print New Line on Complete
+    
+    if training:
+        print(f'{iteration}/{total}: |{bar}| {percent}% Completed, ETA: {timer/(iteration / float(total))-timer:0.1f}s, {batch_timer*1000:0.0f}ms/step, Loss: {loss:0.6f}\033[K',
+            end=printEnd)
+    else:
+        print(f'[Test/Val] {iteration}/{total}: |{bar}| {percent}% Completed, ETA: {timer/(iteration / float(total))-timer:0.1f}s, {batch_timer*1000:0.0f}ms/step, Loss: {loss:0.6f}\033[K',
+            end=printEnd)
+    # if iteration % 100 == 0:
+    #     log(f'\rEpoch {epoch}/{total_epochs}: |{bar}| {percent}% Complete, Loss: {loss}')
     if iteration == total:
-        print()
+        if training:
+            log(f'{iteration}/{total}: |{bar}| {percent}% Completed, Time cost: {timer:0.1f}s, {batch_timer*1000:0.0f}ms/step, Loss: {loss:0.6f}')
+        else:
+            log(f'[Test/Val] {iteration}/{total}: |{bar}| {percent}% Completed, Time cost: {timer:0.1f}s, {batch_timer*1000:0.0f}ms/step, Loss: {loss:0.6f}')
+
+        
 
 def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
     """train operations for one epoch"""
+    begin = time.perf_counter()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    size = len(dataloader.dataset)
+    size = len(dataloader)
     epochLoss = 0
+    batch_time=[]
     for batch_idx, (images, points, y) in enumerate(dataloader):
+        batch_begin = time.perf_counter()
         images, points, y = images.to(device), points.to(device), y.to(device)
         pred = model(images.float(), points.float())  # predicts on the batch of training data
         reshaped_pred = pred.transpose(1, 2)  # (batch_size, T=8, 1)
@@ -76,8 +92,10 @@ def train_step(dataloader, model, loss_fn, optimizer, epoch, total_epochs):
         epochMeanLoss = epochLoss / (batch_idx + 1)
         current = (batch_idx + 1) * len(images)  # len(images)=batch size
         loss, current = loss.item(), batch_idx * len(images)  # (batch size)
-        print_progress_bar(batch_idx, len(size), epoch, total_epochs, loss)
-
+        end = time.perf_counter()
+        batch_time.append(end-batch_begin)
+        print_progress_bar(batch_idx+1, size, epochMeanLoss, timer=end-begin, batch_timer=sum(batch_time)/len(batch_time))
+    
     return epochMeanLoss
 
 
@@ -91,7 +109,7 @@ def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5)
         save_dir = str(Path(flags.save_dir, f"e{after_epoch}").resolve())
         if os.path.exists(save_dir) == False:
                 os.makedirs(save_dir)
-    log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={pred.shape}")
+    # log(f"\t\t{save_dir} - {name}: visualization point_cloud.shape={pred.shape}")
     voxel = torch.where(pred.cpu()>=threshold,ones,zeros)
     voxel_fp = str(Path(save_dir, f"{name}_voxel_grid.jpg").resolve())
     util.draw_voxel_grid(voxel, to_show=False, to_disk=True, fp=voxel_fp)
@@ -102,11 +120,14 @@ def visualize_predictions(pred, name, point_centers, after_epoch, threshold=0.5)
 def test(dataloader, model, loss_fn, after_epoch=None):
     """ test or validation function for one epoch
     model: with loaded checkpoint or trained parameters"""
+    begin = time.perf_counter()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     testLosses = []
-    size = len(dataloader.dataset)
+    size = len(dataloader)
     IoU_table = {}
+    batch_time=[]
     for batch_idx, (images, points, y) in enumerate(dataloader):
+        batch_begin = time.perf_counter()
         images, points, y = images.to(device), points.to(device), y.to(device)  # points: (batch_size, 3, T)
         with torch.no_grad():
             pred = model(images.float(), points.float())  # (batch_size, 1, T=16**3=4096)
@@ -119,7 +140,7 @@ def test(dataloader, model, loss_fn, after_epoch=None):
 
         # current = (batch_idx + 1) * len(images)  # len(images)=batch size
         epochMeanLoss = np.mean(np.asarray(testLosses))
-        # if batch_idx % 20 == 0:
+        # if batch_idx % 100 == 0:
         #     log(f"\t[Test/Val] Batch={batch_idx + 1}: Data = [{current:>5d}/{size:>5d}] |  Running Mean Test/Val Loss = {epochMeanLoss:>7f}")
         # if batch_idx in [0, 1]:
         #     for idx, pred in enumerate(reshaped_pred):# for each voxel grid prediction in batch
@@ -128,11 +149,20 @@ def test(dataloader, model, loss_fn, after_epoch=None):
         for pred, yy in zip(reshaped_pred, y):
             IoU = util.cal_IoU(pred, yy)
             IoU_table[(pred, yy)] = IoU
-        log(batch_idx)
+        end = time.perf_counter()
+        batch_time.append(end-batch_begin)
+        print_progress_bar(batch_idx+1, size, epochMeanLoss, timer=end-begin, batch_timer=sum(batch_time)/len(batch_time), training=False)
         
+    IoUs = np.array(list(IoU_table.values()))
+    mean = np.mean(IoUs)
+    median = np.median(IoUs)
+    variance = np.var(IoUs)
+    log(f'mean: {str(mean)}, median: {str(median)}, variance: {str(variance)}')
+
     IoU_table = sorted(IoU_table.items(), key =lambda x:x[1], reverse=True)
-    for i in range(0,size,100):
-        log(IoU_table[i][1])
+
+    for i in range(0,len(dataloader.dataset),200):
+        log(f"top{i+1}: {IoU_table[i][1]}")
         visualize_predictions(IoU_table[i][0][0], f"top{i+1}_pred", points[0], after_epoch)
         visualize_predictions(IoU_table[i][0][1], f"top{i+1}_ground_truth", points[0], after_epoch)
     
@@ -191,7 +221,7 @@ if __name__ == "__main__":
             if torch.cuda.is_available():
                 model.load_state_dict(torch.load(checkpoint_path))
             else:
-                model.load_state_dict(torch.load(checkpoint_path),map_location=torch.device('cpu'))
+                model.load_state_dict(torch.load(checkpoint_path,map_location=torch.device('cpu')))
             startEpoch = int(checkpoint_path[checkpoint_path.rindex("_") + 1:-4]) + 1
             flags.save_dir = flags.load_ckpt_dir
         else:
@@ -218,10 +248,10 @@ if __name__ == "__main__":
         optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)  # weight_decay=1e-5
         log(f"Training for epochs {startEpoch}-{startEpoch + flags.num_epoches - 1} ({flags.num_epoches} epoches)")
         for epoch_idx in range(startEpoch, startEpoch + flags.num_epoches):
-            log(f"-------------------------------\nEpoch {epoch_idx}")
-            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches)
+            log(f"-------------------------------\nEpoch {epoch_idx}/{startEpoch + flags.num_epoches - 1}")
+            epochMeanLoss = train_step(train_dataloader, model, loss_fn, optimizer, epoch_idx, startEpoch + flags.num_epoches-1)
             trainWriter.add_scalar("Loss", epochMeanLoss, global_step=epoch_idx)
-            if epoch_idx % 100 == 0:
+            if epoch_idx % 1 == 0:
                 torch.save(model.state_dict(), f'{flags.save_dir}dvhNet_weights_{epoch_idx}.pth')
                 testEpochMeanLoss = test(val_dataloader, model, loss_fn, after_epoch=epoch_idx)
                 evalWriter.add_scalar("Loss", testEpochMeanLoss, global_step=epoch_idx)
@@ -252,7 +282,7 @@ if __name__ == "__main__":
         if torch.cuda.is_available():
             model.load_state_dict(torch.load(checkpoint_path))
         else:
-            model.load_state_dict(torch.load(checkpoint_path))
+            model.load_state_dict(torch.load(checkpoint_path, map_location=torch.device('cpu')))
         model.eval()
 
         test_data = DvhShapeNetDataset(config.test_dir, config.resolution)
